@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:title="Home"
+        android:id="@+id/home"
+        android:icon="@drawable/icon_home"/>
+    <item android:title="ClassList"
+        android:id="@+id/class_list"
+        android:icon="@drawable/classlist_icon" />
+    <item android:title="Approval"
+        android:id="@+id/reg_Approval"
+        android:icon="@drawable/registration_approval_icon"/>
+    <item android:title="Add Admin"
+        android:id="@+id/add_admin"
+        android:icon="@drawable/add_admin_icon"/>
+    <item android:title="Add Teacher"
+        android:id="@+id/add_teacher"
+        android:icon="@drawable/add_teacher_icon"/>
+
+</menu>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="grey">#D9D9D9</color>
+    <color name="lightgrey">#E0E0E0</color>
+    <color name="peach">#FFE5B4</color>
+    <color name="darkgrey">#636363</color>
+    <color name="blue">#0000FF</color>
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="backgroundColor">#FFFFFF</color>
+    <color name="textColor">#000000</color>
+    <color name="calendarDateColor">#333333</color>
+    <color name="calendarWeekDayColor">#666666</color>
+    <color name="calendarSelectedColor">#FFBB86FC</color>
+    <color name="calendarEventColor">#FF03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="calendar_today_bg">#FFEB3B</color> <!-- yellow for today -->
+    <color name="calendar_selected_bg">#6200EE</color> <!-- purple for selected date -->
+    <color name="calendar_present_bg">#4CAF50</color> <!-- green for present -->
+    <color name="purple_dark">#4A47A3</color>
+    <color name="gray_text">#757575</color>
+    <color name="background_gray">#F4F6F8</color>
+</resources>

@@ -1,0 +1,92 @@
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="Background Image"
+        android:scaleType="centerCrop"
+        android:src="@drawable/background_creche" />
+
+    <!-- Dim Overlay -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add Emergency Contact"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="50dp"
+            android:layout_gravity="center"/>
+
+        <EditText
+            android:id="@+id/ECfirstName"
+            style="@style/CustomEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/edit_text_background"
+            android:hint="Enter Name/ Relationship:"
+            android:minHeight="48dp"
+            android:padding="12dp"
+            android:textColor="#000" />
+
+        <EditText
+            android:id="@+id/EClastName"
+            style="@style/CustomEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/edit_text_background"
+            android:hint="Enter Contact Number:"
+            android:minHeight="48dp"
+            android:padding="12dp"
+            android:textColor="#000" />
+
+        <Button
+            android:id="@+id/btnAddEmergencyContact"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Contact"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:padding="12dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvContacts"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="30dp"
+            android:background="@color/white"/>
+
+        <Button
+            android:id="@+id/btnSaveAndReturn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Save and Return"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:padding="12dp" />
+
+    </LinearLayout>
+
+
+</FrameLayout>
