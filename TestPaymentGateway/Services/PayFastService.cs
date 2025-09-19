@@ -22,21 +22,23 @@ namespace TestPaymentGateway.Services
 
         public string GeneratePaymentData(decimal amount, string itemName, string itemDescription, string emailAddress)
         {
+            // Get BaseUrl from environment variable
+            var baseUrl = Environment.GetEnvironmentVariable("BaseUrl") ?? throw new InvalidOperationException("BaseUrl environment variable not set");
+
             var data = new Dictionary<string, string>
-        {
-            { "merchant_id", _merchantId },
-            { "merchant_key", _merchantKey },
-            { "return_url", "https://[your site].onrender.com/api/payment/payment-success" },
-            { "cancel_url", "https://[your site].onrender.com/api/payment/payment-cancel" },
-            { "notify_url", "https://[your site].onrender.com/api/payment/payment-notify" },
-            { "email_address", emailAddress },
-            { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
-            { "item_name", itemName },
-            { "item_description", itemDescription },
-        };
+    {
+        { "merchant_id", _merchantId },
+        { "merchant_key", _merchantKey },
+        { "return_url", $"{baseUrl}/api/payment/payment-success" },
+        { "cancel_url", $"{baseUrl}/api/payment/payment-cancel" },
+        { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
+        { "email_address", emailAddress },
+        { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
+        { "item_name", itemName },
+        { "item_description", itemDescription },
+    };
 
             var signature = CreateSignature(data);
-
             data.Add("signature", signature);
 
             var url = _sandboxUrl;
@@ -44,27 +46,27 @@ namespace TestPaymentGateway.Services
             var formData = data.Select(kv => $"<input type='hidden' name='{kv.Key}' value='{kv.Value}' />").ToList();
 
             var htmlForm = $@"
-            <!DOCTYPE html>
-            <html lang='en'>
-            <head>
-                <meta charset='UTF-8'>
-                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                <title>Redirecting to PayFast...</title>
-                <script type='text/javascript'>
-                    window.onload = function() {{
-                        document.getElementById('payfast_form').submit(); // Auto-submit form to PayFast
-                    }};
-                </script>
-            </head>
-            <body>
-                <h2>Redirecting you to PayFast...</h2>
-                <p>If you're not redirected, <a href='#' onclick='document.getElementById('payfast_form').submit();'>click here</a>.</p>
-                <form id='payfast_form' action='{url}' method='POST'>
-                    {string.Join("\n", formData)}
-                    <input type='submit' value='Pay Now' style='display:none;' /> <!-- Hidden submit button -->
-                </form>
-            </body>
-            </html>";
+    <!DOCTYPE html>
+    <html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Redirecting to PayFast...</title>
+        <script type='text/javascript'>
+            window.onload = function() {{
+                document.getElementById('payfast_form').submit();
+            }};
+        </script>
+    </head>
+    <body>
+        <h2>Redirecting you to PayFast...</h2>
+        <p>If you're not redirected, <a href='#' onclick='document.getElementById(""payfast_form"").submit();'>click here</a>.</p>
+        <form id='payfast_form' action='{url}' method='POST'>
+            {string.Join("\n", formData)}
+            <input type='submit' value='Pay Now' style='display:none;' />
+        </form>
+    </body>
+    </html>";
 
             return htmlForm;
         }
