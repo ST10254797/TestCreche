@@ -37,22 +37,48 @@ namespace TestPaymentGateway.Controllers
             };
 
             _transactionService.AddTransaction(transaction);
-            string htmlForm = _payFastService.GeneratePaymentData(amount, orderId, orderDescription, email);
+            var paymentUrl = _payFastService.GeneratePaymentUrl(orderId, orderDescription, email, amount);
 
-            return Content(htmlForm, "text/html");
+            return Ok(new
+            {
+                Status = "Pending",
+                OrderId = orderId,
+                Amount = amount,
+                PaymentUrl = paymentUrl
+            });
+
         }
 
         [HttpGet("payment-success")]
         public IActionResult PaymentSuccess()
         {
-            return Ok("Payment successful. Thank you for your purchase.");
+            var html = @"
+    <html>
+        <head><title>Payment Success</title></head>
+        <body style='font-family:sans-serif; text-align:center;'>
+            <h1 style='color:green;'>✅ Payment Successful</h1>
+            <p>Thank you for your purchase!</p>
+            <a href='/' style='color:blue;'>Go back to Home</a>
+        </body>
+    </html>";
+            return Content(html, "text/html");
         }
 
         [HttpGet("payment-cancel")]
         public IActionResult PaymentCancel()
         {
-            return Ok("Payment was canceled. Please try again.");
+            var html = @"
+    <html>
+        <head><title>Payment Cancelled</title></head>
+        <body style='font-family:sans-serif; text-align:center;'>
+            <h1 style='color:red;'>❌ Payment Cancelled</h1>
+            <p>You cancelled the transaction. Please try again.</p>
+            <a href='/' style='color:blue;'>Return to Shop</a>
+        </body>
+    </html>";
+            return Content(html, "text/html");
         }
+
 
         [HttpPost("payment-notify")]
         public async Task<IActionResult> Notify()

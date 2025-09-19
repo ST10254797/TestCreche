@@ -124,5 +124,33 @@ namespace TestPaymentGateway.Services
             string encoded = replaceRegex.Replace(url, matchEval);
             return encoded;
         }
+
+        public string GeneratePaymentUrl(string orderId, string itemDescription, string emailAddress, decimal amount)
+        {
+            var data = new Dictionary<string, string>
+    {
+        { "merchant_id", _merchantId },
+        { "merchant_key", _merchantKey },
+        { "return_url", $"https://testcrecheapp.onrender.com/api/payment/payment-success" },
+        { "cancel_url", $"https://testcrecheapp.onrender.com/api/payment/payment-cancel" },
+        { "notify_url", $"https://testcrecheapp.onrender.com/api/payment/payment-notify" },
+        { "m_payment_id", orderId }, // ✅ Use orderId here
+        { "email_address", emailAddress },
+        { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
+        { "item_name", orderId }, // Can use orderId or product name
+        { "item_description", itemDescription }
+    };
+
+            // Generate signature
+            var signature = CreateSignature(data);
+            data.Add("signature", signature);
+
+            // Build URL query string
+            var query = string.Join("&", data.Select(kv => $"{kv.Key}={UrlEncode(kv.Value)}"));
+
+            // Return full redirect URL
+            return $"{_sandboxUrl}?{query}";
+        }
+
     }
 }
