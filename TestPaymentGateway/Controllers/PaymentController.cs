@@ -151,5 +151,12 @@ namespace TestPaymentGateway.Controllers
             _transactionService.ClearTransactions();
             return Ok();
         }
+
+        [HttpGet("redirect")]
+        public IActionResult RedirectToApp(string redirectUrl)
+        {
+            // Simply redirect the user to the deep link after PayFast
+            return Redirect(redirectUrl);
+        }
     }
 }
