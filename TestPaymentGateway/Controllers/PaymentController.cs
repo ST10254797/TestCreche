@@ -45,14 +45,57 @@ namespace TestPaymentGateway.Controllers
         [HttpGet("payment-success")]
         public IActionResult PaymentSuccess()
         {
-            return Ok("Payment successful. Thank you for your purchase.");
+            string html = @"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Payment Successful</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .card { display: inline-block; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; }
+            h1 { color: #28a745; }
+            a { display: inline-block; margin-top: 20px; padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <div class='card'>
+            <h1>✅ Payment Successful</h1>
+            <p>Thank you for your purchase!</p>
+            <a href='/'>Go Back Home</a>
+        </div>
+    </body>
+    </html>";
+
+            return Content(html, "text/html");
         }
 
         [HttpGet("payment-cancel")]
         public IActionResult PaymentCancel()
         {
-            return Ok("Payment was canceled. Please try again.");
+            string html = @"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Payment Cancelled</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .card { display: inline-block; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; }
+            h1 { color: #dc3545; }
+            a { display: inline-block; margin-top: 20px; padding: 10px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <div class='card'>
+            <h1>❌ Payment Cancelled</h1>
+            <p>Your payment was cancelled. Please try again.</p>
+            <a href='/'>Try Again</a>
+        </div>
+    </body>
+    </html>";
+
+            return Content(html, "text/html");
         }
+
 
         [HttpPost("payment-notify")]
         public async Task<IActionResult> Notify()
@@ -107,6 +150,13 @@ namespace TestPaymentGateway.Controllers
         {
             _transactionService.ClearTransactions();
             return Ok();
+        }
+
+        [HttpGet("redirect")]
+        public IActionResult RedirectToApp(string redirectUrl)
+        {
+            // Simply redirect the user to the deep link after PayFast
+            return Redirect(redirectUrl);
         }
     }
 }
