@@ -12,19 +12,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CrecheManagementApp">
-
+        <activity
+            android:name=".PaymentActivity"
+            android:exported="false" />
         <activity
             android:name=".EmergencyContactActivity"
-            android:exported="false" />
-
-        <!-- Host activities for all the fragments in their specific locations-->
+            android:exported="false" /> <!-- Host activities for all the fragments in their specific locations -->
         <activity
             android:name=".TeacherDashboardActivity"
             android:exported="false" />
         <activity
             android:name=".AdminDashboardActivity"
-            android:exported="false" />
-        <!-- Core User Flow -->
+            android:exported="false" /> <!-- Core User Flow -->
         <activity
             android:name=".MainActivity"
             android:exported="true" />

@@ -119,6 +119,11 @@ class AdminDashboardActivity : AppCompatActivity() {
         findViewById<LinearLayout>(R.id.admin_btn_attendance)?.setOnClickListener {
             openFragment(AdminAttendanceFragment(), featureCard, adminFragmentContainer)
         }
+
+        findViewById<LinearLayout>(R.id.admin_btn_payment)?.setOnClickListener {
+            val intent = Intent(this, PaymentActivity::class.java)
+            startActivity(intent)
+        }
     }
 
 }
