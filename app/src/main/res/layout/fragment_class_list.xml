@@ -1,0 +1,61 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ClassListFragment">
+
+    <!-- Optional background like notification screen -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/background_creche" />
+
+    <!-- Optional dim overlay -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000" />
+
+    <TextView
+        android:id="@+id/title_class_list"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Teachers Class List"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:layout_gravity="center_horizontal"
+        android:paddingBottom="12dp"
+        android:layout_marginTop="40dp"/>
+
+    <!-- Foreground white rounded container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@drawable/rounded_white_bg"
+        android:backgroundTint="@color/grey"
+        android:paddingTop="16dp"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="8dp"
+        android:layout_marginTop="90dp">
+
+
+        <Spinner
+            android:id="@+id/spinnerClassTeachers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:layout_marginBottom="30dp" />
+
+        <ListView
+            android:id="@+id/classListView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="@android:color/darker_gray"
+            android:dividerHeight="1dp" />
+    </LinearLayout>
+</FrameLayout>

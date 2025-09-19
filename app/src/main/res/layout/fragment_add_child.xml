@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="Background Image"
+        android:scaleType="centerCrop"
+        android:src="@drawable/background_creche" />
+
+    <!-- Dim Overlay -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000" />
+
+    <!-- Scrollable content -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="vertical"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:padding="16dp"
+            android:paddingBottom="32dp"
+            >
+
+            <!-- Logo -->
+            <ImageView
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:contentDescription="Logo"
+                android:src="@drawable/creche_logo"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Heading -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Child Registration"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Child First Name -->
+            <EditText
+                android:id="@+id/childFirstName"
+                style="@style/CustomEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_background"
+                android:hint="Enter Child First Name:"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="#000" />
+
+            <!-- Child Surname -->
+            <EditText
+                android:id="@+id/childLastName"
+                style="@style/CustomEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_background"
+                android:hint="Enter Child Surname:"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="#000" />
+
+            <!-- Date of Birth -->
+            <EditText
+                android:id="@+id/childDOB"
+                style="@style/CustomEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_background"
+                android:hint="Enter Date of Birth:"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="#000" />
+
+            <!-- Physical Address -->
+            <EditText
+                android:id="@+id/Address"
+                style="@style/CustomEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_background"
+                android:hint="Physical Address"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="#000" />
+
+            <!-- Gender -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gender (Male/Female):"
+                android:textStyle="bold"
+                android:textSize="17dp"
+                android:textColor="@color/white"
+                android:layout_marginBottom="8dp"
+                android:layout_gravity="left" />
+
+            <Spinner
+                android:id="@+id/spinnerGender"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_background"
+                android:minHeight="48dp"
+                android:padding="8dp"
+                tools:ignore="DuplicateIds" />
+
+            <!-- Allergies Spinner -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Allergies (YES/NO):"
+                android:textStyle="bold"
+                android:textSize="17dp"
+                android:textColor="@color/white"
+                android:layout_marginBottom="8dp"
+                android:layout_gravity="left" />
+
+            <Spinner
+                android:id="@+id/spinnerAllergies"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_background"
+                android:minHeight="48dp"
+                android:padding="8dp" />
+
+            <!-- Allergy Details -->
+            <EditText
+                android:id="@+id/childAllergyDetails"
+                style="@style/CustomEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_background"
+                android:hint="If YES, Provide Details:"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:textColor="#000" />
+
+            <!-- Emergency Contact -->
+            <LinearLayout
+                xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="10dp">
+
+                <!-- Other child form fields here... -->
+
+                <Button
+                    android:id="@+id/btnAddEmergencyContact"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Add Emergency Contact"
+                    android:backgroundTint="#FFFFFF"
+                    android:textColor="#000000"
+                    android:textStyle="bold"
+                    android:padding="12dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Emergency Contacts:"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:layout_marginTop="12dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvEmergencyContacts"
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:background="#EEEEEE"
+                    android:layout_marginTop="8dp" />
+
+            </LinearLayout>
+
+
+            <!-- Confirm Button -->
+            <Button
+                android:id="@+id/btnConfirm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="CONFIRM REGISTRATION"
+                android:backgroundTint="#FFFFFF"
+                android:textColor="#000000"
+                android:textStyle="bold"
+                android:padding="12dp" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

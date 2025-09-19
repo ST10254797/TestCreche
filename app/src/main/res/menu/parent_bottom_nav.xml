@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:title="Home"
+        android:id="@+id/home"
+        android:icon="@drawable/icon_home"/>
+    <item android:title="Message"
+        android:id="@+id/messaging"
+        android:icon="@drawable/message_icon" />
+    <item android:title="Add Child"
+        android:id="@+id/add_child"
+        android:icon="@drawable/add_child_icon"/>
+    <item android:title="Lunch"
+        android:id="@+id/lunch"
+        android:icon="@drawable/lunch_icon"/>
+    <item android:title="Child Info"
+        android:id="@+id/child_info"
+        android:icon="@drawable/child_info_icon"/>
+</menu>

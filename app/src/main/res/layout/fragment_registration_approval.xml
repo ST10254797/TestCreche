@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+
+    <!-- Optional background like notification screen -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/background_creche" />
+
+    <!-- Optional dim overlay -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000" />
+
+    <TextView
+        android:id="@+id/title_approval"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pending Child Registrations"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:layout_gravity="center_horizontal"
+        android:paddingBottom="12dp"
+        android:layout_marginTop="40dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@drawable/rounded_white_bg"
+        android:backgroundTint="@color/grey"
+        android:paddingTop="16dp"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="8dp"
+        android:layout_marginTop="90dp">
+
+        <ListView
+            android:id="@+id/listViewApprovals"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:divider="@android:color/black"
+            android:dividerHeight="2dp"
+            android:layout_marginTop="40dp"/>
+    </LinearLayout>
+</FrameLayout>

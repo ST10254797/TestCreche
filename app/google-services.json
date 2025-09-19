@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "893593179594",
+    "project_id": "crechemanagementapp",
+    "storage_bucket": "crechemanagementapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:893593179594:android:0754de772fdbdb8de7ab33",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLxu-bBF8_aajzFCvidNQD_9PkmXoTLVw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
