@@ -44,9 +44,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
+// Comment out HTTPS redirection for now on Render
+// app.UseHttpsRedirection();
 
+app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 
@@ -55,5 +56,9 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
+
+// -------------------- Bind to Render port --------------------
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.Run();
