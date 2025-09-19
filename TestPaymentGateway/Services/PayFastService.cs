@@ -24,19 +24,19 @@ namespace TestPaymentGateway.Services
         {
             // Get BaseUrl from environment variable
             var baseUrl = Environment.GetEnvironmentVariable("BaseUrl") ?? throw new InvalidOperationException("BaseUrl environment variable not set");
-
             var data = new Dictionary<string, string>
-    {
-        { "merchant_id", _merchantId },
-        { "merchant_key", _merchantKey },
-        { "return_url", $"{baseUrl}/api/payment/payment-success" },
-        { "cancel_url", $"{baseUrl}/api/payment/payment-cancel" },
-        { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
-        { "email_address", emailAddress },
-        { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
-        { "item_name", itemName },
-        { "item_description", itemDescription },
-    };
+{
+    { "merchant_id", _merchantId },
+    { "merchant_key", _merchantKey },
+    { "return_url", "myapp://payment-success" },
+    { "cancel_url", "myapp://payment-cancel" },
+    { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
+    { "email_address", emailAddress },
+    { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
+    { "item_name", itemName },
+    { "item_description", itemDescription }
+};
+
 
             var signature = CreateSignature(data);
             data.Add("signature", signature);
