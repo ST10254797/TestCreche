@@ -37,45 +37,62 @@ namespace TestPaymentGateway.Controllers
             };
 
             _transactionService.AddTransaction(transaction);
-            var paymentUrl = _payFastService.GeneratePaymentUrl(orderId, orderDescription, email, amount);
+            string htmlForm = _payFastService.GeneratePaymentData(amount, orderId, orderDescription, email);
 
-            return Ok(new
-            {
-                Status = "Pending",
-                OrderId = orderId,
-                Amount = amount,
-                PaymentUrl = paymentUrl
-            });
-
+            return Content(htmlForm, "text/html");
         }
 
         [HttpGet("payment-success")]
         public IActionResult PaymentSuccess()
         {
-            var html = @"
+            string html = @"
+    <!DOCTYPE html>
     <html>
-        <head><title>Payment Success</title></head>
-        <body style='font-family:sans-serif; text-align:center;'>
-            <h1 style='color:green;'>✅ Payment Successful</h1>
+    <head>
+        <title>Payment Successful</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .card { display: inline-block; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; }
+            h1 { color: #28a745; }
+            a { display: inline-block; margin-top: 20px; padding: 10px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <div class='card'>
+            <h1>✅ Payment Successful</h1>
             <p>Thank you for your purchase!</p>
-            <a href='/' style='color:blue;'>Go back to Home</a>
-        </body>
+            <a href='/'>Go Back Home</a>
+        </div>
+    </body>
     </html>";
+
             return Content(html, "text/html");
         }
 
         [HttpGet("payment-cancel")]
         public IActionResult PaymentCancel()
         {
-            var html = @"
+            string html = @"
+    <!DOCTYPE html>
     <html>
-        <head><title>Payment Cancelled</title></head>
-        <body style='font-family:sans-serif; text-align:center;'>
-            <h1 style='color:red;'>❌ Payment Cancelled</h1>
-            <p>You cancelled the transaction. Please try again.</p>
-            <a href='/' style='color:blue;'>Return to Shop</a>
-        </body>
+    <head>
+        <title>Payment Cancelled</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .card { display: inline-block; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; }
+            h1 { color: #dc3545; }
+            a { display: inline-block; margin-top: 20px; padding: 10px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <div class='card'>
+            <h1>❌ Payment Cancelled</h1>
+            <p>Your payment was cancelled. Please try again.</p>
+            <a href='/'>Try Again</a>
+        </div>
+    </body>
     </html>";
+
             return Content(html, "text/html");
         }
 
