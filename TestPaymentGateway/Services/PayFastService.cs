@@ -115,32 +115,42 @@ namespace TestPaymentGateway.Services
 
         public string CreateSignature(Dictionary<string, string> data)
         {
+            // Filter out empty values and the signature itself
             var filtered = data
                 .Where(kv => !string.IsNullOrEmpty(kv.Value) && kv.Key != "signature")
                 .OrderBy(kv => kv.Key);
 
+            // Build payload for signature using RAW values (no URL encoding)
             var payload = string.Join("&", filtered.Select(kv =>
-                $"{kv.Key}={UrlEncode(kv.Value)}"));
+                $"{kv.Key}={kv.Value}"));  // <- do NOT UrlEncode here
 
-            // CRITICAL: Passphrase should NOT be URL encoded in the payload
+            // Append passphrase if set (also raw, NOT URL-encoded)
             if (!string.IsNullOrEmpty(_passphrase))
-                payload += $"&passphrase={_passphrase}";  // Remove UrlEncode here!
+                payload += $"&passphrase={_passphrase}";
 
+            // --- Debugging Output ---
             Console.WriteLine("=== PayFast Signature Debug ===");
+            Console.WriteLine("Fields used for signature:");
+            foreach (var kv in filtered)
+                Console.WriteLine($"{kv.Key} = {kv.Value}");
+            Console.WriteLine("Passphrase: " + _passphrase);
             Console.WriteLine("Payload before hashing:");
             Console.WriteLine(payload);
             Console.WriteLine("===============================");
 
+            // Generate MD5 hash
             using var md5 = MD5.Create();
             var inputBytes = Encoding.UTF8.GetBytes(payload);
             var hash = md5.ComputeHash(inputBytes);
             var signature = BitConverter.ToString(hash).Replace("-", "").ToLower();
 
+            // --- Debugging Output ---
             Console.WriteLine("Generated Signature: " + signature);
             Console.WriteLine("===============================");
 
             return signature;
         }
+
 
         protected string UrlEncode(string value)
         {
