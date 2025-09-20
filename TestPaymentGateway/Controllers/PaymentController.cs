@@ -211,8 +211,8 @@ namespace TestPaymentGateway.Controllers
             return Ok(new { feeId, message = "School fee created successfully." });
         }
 
-        [HttpGet("initiate-school-fee-payment")]
-        public IActionResult InitiateSchoolFeePayment(string childId, string feeId, string email)
+        [HttpGet("school-fee-payment-page")]
+        public IActionResult SchoolFeePaymentPage(string childId, string feeId, string email)
         {
             // Fetch the fee document
             var feeRef = _firestore.Collection("Child")
@@ -235,7 +235,7 @@ namespace TestPaymentGateway.Controllers
                 ? $"{childSnapshot.GetValue<string>("firstName")} {childSnapshot.GetValue<string>("lastName")}"
                 : "Unknown";
 
-            // Clean strings to remove extra spaces or invisible characters
+            // Clean strings
             childName = childName.Trim();
             description = description.Trim();
 
@@ -251,18 +251,27 @@ namespace TestPaymentGateway.Controllers
             };
             _transactionService.AddTransaction(transaction);
 
-            // Generate HTML form for PayFast
+            // Generate PayFast HTML form
             string htmlForm = _payFastService.GeneratePaymentData(
                 amount: amount,
-                itemName: childName,            // child name
-                itemDescription: description,   // fee description
+                itemName: childName,
+                itemDescription: description,
                 emailAddress: email,
-                customStr1: childId,            // pass childId for tracking
-                customStr2: feeId                // pass feeId for tracking
+                customStr1: childId,
+                customStr2: feeId
             );
 
             return Content(htmlForm, "text/html");
         }
+
+
+        [HttpGet("initiate-school-fee-payment")]
+        public IActionResult InitiateSchoolFeePayment(string childId, string feeId, string email)
+        {
+            // Redirect to the dedicated school fee payment page
+            return Redirect($"/api/payment/school-fee-payment-page?childId={childId}&feeId={feeId}&email={email}");
+        }
+
 
 
 
