@@ -214,6 +214,7 @@ namespace TestPaymentGateway.Controllers
         [HttpGet("initiate-school-fee-payment")]
         public IActionResult InitiateSchoolFeePayment(string childId, string feeId, string email)
         {
+            // Fetch fee document
             var feeRef = _firestore.Collection("Child").Document(childId).Collection("Fees").Document(feeId);
             var feeSnapshot = feeRef.GetSnapshotAsync().Result;
 
@@ -223,8 +224,17 @@ namespace TestPaymentGateway.Controllers
             var fee = feeSnapshot.ToDictionary();
             decimal amount = Convert.ToDecimal(fee["amount"]);
             string description = fee["description"].ToString();
-            string childName = feeSnapshot.Reference.Parent.Parent.GetSnapshotAsync().Result.GetValue<string>("name"); // Get child name from parent doc
 
+            // Fetch child document for firstName and lastName
+            var childSnapshot = feeRef.Parent.Parent.GetSnapshotAsync().Result;
+            if (!childSnapshot.Exists)
+                return NotFound("Child not found.");
+
+            string firstName = childSnapshot.GetValue<string>("firstName");
+            string lastName = childSnapshot.GetValue<string>("lastName");
+            string childName = $"{firstName} {lastName}";
+
+            // Create transaction
             var transaction = new AppTransaction
             {
                 OrderId = feeId,
@@ -234,10 +244,9 @@ namespace TestPaymentGateway.Controllers
                 PaymentStatus = "PENDING",
                 PaymentDate = DateTime.UtcNow
             };
-
             _transactionService.AddTransaction(transaction);
 
-            // Generate HTML form for PayFast with proper names & custom fields
+            // Generate HTML form for PayFast
             string htmlForm = _payFastService.GeneratePaymentData(
                 amount,
                 itemName: childName,
