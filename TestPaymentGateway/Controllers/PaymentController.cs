@@ -117,6 +117,7 @@ namespace TestPaymentGateway.Controllers
                 AmountGross = decimal.TryParse(form["amount_gross"], out var gross) ? gross : 0,
                 CustomStr1 = form["custom_str1"], // childId
                 CustomStr2 = form["custom_str2"], // feeId
+                CustomStr3 = form["custom_str3"], // paymentType
                 EmailAddress = form["email_address"]
             };
 
@@ -144,7 +145,9 @@ namespace TestPaymentGateway.Controllers
                 {
                     { "paymentStatus", "PAID" },
                     { "transactionId", transaction.PaymentId },
-                    { "paidAt", DateTime.UtcNow }
+                    { "paidAt", DateTime.UtcNow },
+                    { "amountPaid", transaction.AmountPaid },        // Save actual amount paid
+                    { "paymentType", notification.CustomStr3 ?? "ONE_TIME" } // Save chosen type
                 };
                         await feeRef.UpdateAsync(update);
                     }
@@ -153,6 +156,7 @@ namespace TestPaymentGateway.Controllers
 
             return Ok();
         }
+
 
 
         [HttpGet("all-transactions")]
@@ -250,14 +254,15 @@ namespace TestPaymentGateway.Controllers
             };
             _transactionService.AddTransaction(transaction);
 
-            // Generate PayFast HTML form
+            // Generate PayFast HTML form, now passing paymentType as customStr3
             string htmlForm = _payFastService.GeneratePaymentData(
                 amount: amountToPay,
                 itemName: childName,
                 itemDescription: description,
                 emailAddress: email,
                 customStr1: childId,
-                customStr2: feeId
+                customStr2: feeId,
+                customStr3: paymentType?.ToUpper() ?? type // "MONTHLY" or "ONE_TIME"
             );
 
             return Content(htmlForm, "text/html");
