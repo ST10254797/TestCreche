@@ -142,9 +142,10 @@ namespace TestPaymentGateway.Services
             return signature;
         }
 
-        protected string UrlEncode(string url)
+        protected string UrlEncode(string value)
         {
-            return Uri.EscapeDataString(url);
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            return HttpUtility.UrlEncode(value).Replace("%20", "+");
         }
     }
 }
