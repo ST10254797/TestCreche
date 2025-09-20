@@ -223,10 +223,11 @@ namespace TestPaymentGateway.Controllers
             var fee = feeSnapshot.ToDictionary();
             decimal amount = Convert.ToDecimal(fee["amount"]);
             string description = fee["description"].ToString();
+            string childName = feeSnapshot.Reference.Parent.Parent.GetSnapshotAsync().Result.GetValue<string>("name"); // Get child name from parent doc
 
             var transaction = new AppTransaction
             {
-                OrderId = feeId, // link transaction to fee
+                OrderId = feeId,
                 OrderDescription = description,
                 Email = email,
                 Amount = amount,
@@ -236,11 +237,19 @@ namespace TestPaymentGateway.Controllers
 
             _transactionService.AddTransaction(transaction);
 
-            // NOTE: Ensure your GeneratePaymentData method supports customStr1 and customStr2
-            string htmlForm = _payFastService.GeneratePaymentData(amount, feeId, description, email,
-                                                                  customStr1: childId, customStr2: feeId);
+            // Generate HTML form for PayFast with proper names & custom fields
+            string htmlForm = _payFastService.GeneratePaymentData(
+                amount,
+                itemName: childName,
+                itemDescription: description,
+                emailAddress: email,
+                customStr1: childId,
+                customStr2: feeId
+            );
+
             return Content(htmlForm, "text/html");
         }
+
 
         public class SchoolFeeRequest
         {
