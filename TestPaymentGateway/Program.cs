@@ -1,6 +1,9 @@
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
+using Google.Cloud.Firestore.V1;
+using Grpc.Auth;
 using TestPaymentGateway;
 using TestPaymentGateway.Services;
-using Google.Cloud.Firestore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,16 +28,29 @@ builder.Services.AddScoped<PayFastService>(serviceProvider =>
 
 // -------------------- Firestore Initialization --------------------
 
-// Load your Firebase service account key (JSON file downloaded from Firebase console)
-Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", "firebase-key.json");
+// Read Firebase service account JSON from environment variable
+var firebaseJson = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS_JSON");
+if (string.IsNullOrEmpty(firebaseJson))
+{
+    throw new InvalidOperationException("Environment variable GOOGLE_APPLICATION_CREDENTIALS_JSON is not set.");
+}
 
-// Register FirestoreDb as a singleton
+// Create GoogleCredential from JSON
+var credential = GoogleCredential.FromJson(firebaseJson);
+
+// Create FirestoreClient with the credential
+var firestoreClient = new FirestoreClientBuilder
+{
+    ChannelCredentials = credential.ToChannelCredentials()
+}.Build();
+
+// Register FirestoreDb as singleton
 builder.Services.AddSingleton(provider =>
 {
-    return FirestoreDb.Create("testcreche"); // replace with your Firebase Project ID
+    return FirestoreDb.Create("testcreche", firestoreClient); // replace with your Firebase Project ID
 });
 
-// Add Swagger/OpenAPI support
+// -------------------- Swagger / OpenAPI --------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -56,7 +72,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Comment out HTTPS redirection for now on Render
+// Commented HTTPS redirection for Render
 // app.UseHttpsRedirection();
 
 app.UseStaticFiles();
