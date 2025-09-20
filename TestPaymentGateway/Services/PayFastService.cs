@@ -1,4 +1,7 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
@@ -20,6 +23,7 @@ namespace TestPaymentGateway.Services
             _sandboxUrl = sandboxUrl;
         }
 
+        // --- HTML form POST for WebView / frontend ---
         public string GeneratePaymentData(decimal amount, string itemName, string itemDescription, string emailAddress,
                                     string customStr1 = null, string customStr2 = null)
         {
@@ -50,9 +54,9 @@ namespace TestPaymentGateway.Services
             var signature = CreateSignature(data);
             data.Add("signature", signature);
 
-            var formData = data.Select(kv => $"<input type='hidden' name='{kv.Key}' value='{kv.Value}' />");
+            // HTML encode values to avoid breaking POST
+            var formData = data.Select(kv => $"<input type='hidden' name='{kv.Key}' value='{HttpUtility.HtmlEncode(kv.Value)}' />");
 
-            // Full CSS restored
             var htmlForm = $@"
 <!DOCTYPE html>
 <html lang='en'>
@@ -75,21 +79,10 @@ namespace TestPaymentGateway.Services
             background: #ffffff;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }}
-        h2 {{
-            color: #2ecc71;
-        }}
-        p {{
-            color: #555;
-            font-size: 16px;
-        }}
-        a {{
-            color: #3498db;
-            text-decoration: none;
-            font-weight: bold;
-        }}
-        a:hover {{
-            text-decoration: underline;
-        }}
+        h2 {{ color: #2ecc71; }}
+        p {{ color: #555; font-size: 16px; }}
+        a {{ color: #3498db; text-decoration: none; font-weight: bold; }}
+        a:hover {{ text-decoration: underline; }}
     </style>
     <script type='text/javascript'>
         window.onload = function() {{
@@ -113,24 +106,45 @@ namespace TestPaymentGateway.Services
             return htmlForm;
         }
 
+        // --- GET URL for testing or admin panel ---
+        public string GeneratePaymentUrl(string orderId, string itemDescription, string emailAddress, decimal amount)
+        {
+            var data = new Dictionary<string, string>
+            {
+                { "merchant_id", _merchantId },
+                { "merchant_key", _merchantKey },
+                { "return_url", "https://testcrecheapp.onrender.com/api/payment/payment-success" },
+                { "cancel_url", "https://testcrecheapp.onrender.com/api/payment/payment-cancel" },
+                { "notify_url", "https://testcrecheapp.onrender.com/api/payment/payment-notify" },
+                { "m_payment_id", orderId },        // unique payment/order id
+                { "email_address", emailAddress },
+                { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
+                { "item_name", orderId },           // could be product/item name
+                { "item_description", itemDescription }
+            };
+
+            var signature = CreateSignature(data);
+            data.Add("signature", signature);
+
+            // URL encode for GET query
+            var query = string.Join("&", data.Select(kv => $"{kv.Key}={UrlEncode(kv.Value)}"));
+            return $"{_sandboxUrl}?{query}";
+        }
+
+        // --- Signature generation ---
         public string CreateSignature(Dictionary<string, string> data)
         {
-            // Filter out empty values and the signature itself
             var filtered = data
                 .Where(kv => !string.IsNullOrEmpty(kv.Value) && kv.Key != "signature")
                 .OrderBy(kv => kv.Key);
 
-            // Build payload for signature using RAW values (no URL encoding)
-            var payload = string.Join("&", filtered.Select(kv =>
-                $"{kv.Key}={kv.Value}"));  // <- do NOT UrlEncode here
+            var payload = string.Join("&", filtered.Select(kv => $"{kv.Key}={kv.Value}"));
 
-            // Append passphrase if set (also raw, NOT URL-encoded)
             if (!string.IsNullOrEmpty(_passphrase))
                 payload += $"&passphrase={_passphrase}";
 
-            // --- Debugging Output ---
+            // --- Debugging output ---
             Console.WriteLine("=== PayFast Signature Debug ===");
-            Console.WriteLine("Fields used for signature:");
             foreach (var kv in filtered)
                 Console.WriteLine($"{kv.Key} = {kv.Value}");
             Console.WriteLine("Passphrase: " + _passphrase);
@@ -138,19 +152,15 @@ namespace TestPaymentGateway.Services
             Console.WriteLine(payload);
             Console.WriteLine("===============================");
 
-            // Generate MD5 hash
             using var md5 = MD5.Create();
-            var inputBytes = Encoding.UTF8.GetBytes(payload);
-            var hash = md5.ComputeHash(inputBytes);
+            var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(payload));
             var signature = BitConverter.ToString(hash).Replace("-", "").ToLower();
 
-            // --- Debugging Output ---
             Console.WriteLine("Generated Signature: " + signature);
             Console.WriteLine("===============================");
 
             return signature;
         }
-
 
         protected string UrlEncode(string value)
         {
