@@ -85,6 +85,9 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
 
+app.MapControllers(); // This enables routes defined in ApiController classes
+
+
 // -------------------- Bind to Render port --------------------
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://0.0.0.0:{port}");
