@@ -122,8 +122,9 @@ namespace TestPaymentGateway.Services
             var payload = string.Join("&", filtered.Select(kv =>
                 $"{kv.Key}={UrlEncode(kv.Value)}"));
 
+            // CRITICAL: Passphrase should NOT be URL encoded in the payload
             if (!string.IsNullOrEmpty(_passphrase))
-                payload += $"&passphrase={UrlEncode(_passphrase)}";
+                payload += $"&passphrase={_passphrase}";  // Remove UrlEncode here!
 
             Console.WriteLine("=== PayFast Signature Debug ===");
             Console.WriteLine("Payload before hashing:");
