@@ -25,8 +25,14 @@ namespace TestPaymentGateway.Services
         }
 
         // --- HTML form POST for WebView / frontend ---
-        public string GeneratePaymentData(decimal amount, string itemName, string itemDescription, string emailAddress,
-                                    string customStr1 = null, string customStr2 = null)
+        public string GeneratePaymentData(
+     decimal amount,
+     string itemName,
+     string itemDescription,
+     string emailAddress,
+     string customStr1 = null,
+     string customStr2 = null,
+     string customStr3 = null) // <-- added customStr3
         {
             var baseUrl = Environment.GetEnvironmentVariable("BaseUrl")
                           ?? throw new InvalidOperationException("BaseUrl environment variable not set");
@@ -35,22 +41,24 @@ namespace TestPaymentGateway.Services
             var androidCancelLink = "myapp://payment-cancel";
 
             var data = new Dictionary<string, string>
-            {
-                { "merchant_id", _merchantId },
-                { "merchant_key", _merchantKey },
-                { "return_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidReturnLink}" },
-                { "cancel_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidCancelLink}" },
-                { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
-                { "email_address", emailAddress },
-                { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
-                { "item_name", itemName },
-                { "item_description", itemDescription }
-            };
+    {
+        { "merchant_id", _merchantId },
+        { "merchant_key", _merchantKey },
+        { "return_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidReturnLink}" },
+        { "cancel_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidCancelLink}" },
+        { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
+        { "email_address", emailAddress },
+        { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
+        { "item_name", itemName },
+        { "item_description", itemDescription }
+    };
 
             if (!string.IsNullOrEmpty(customStr1))
                 data.Add("custom_str1", customStr1);
             if (!string.IsNullOrEmpty(customStr2))
                 data.Add("custom_str2", customStr2);
+            if (!string.IsNullOrEmpty(customStr3)) // <-- include customStr3 if provided
+                data.Add("custom_str3", customStr3);
 
             var signature = CreateSignature(data);
             data.Add("signature", signature);

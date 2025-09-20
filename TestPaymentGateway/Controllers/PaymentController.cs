@@ -195,11 +195,19 @@ namespace TestPaymentGateway.Controllers
                                     .Collection("Fees")
                                     .Document(feeId);
 
+            decimal amount = request.Amount;
+
+            // If monthly, calculate monthly installment (example: 10 months)
+            if (request.Type?.ToUpper() == "MONTHLY")
+            {
+                amount = Math.Round(amount / 10, 2); // divide into 10 monthly payments
+            }
+
             var feeData = new
             {
                 type = request.Type, // "ONE_TIME" or "MONTHLY"
                 description = request.Description,
-                amount = request.Amount,
+                amount = amount,
                 dueDate = request.DueDate,
                 paymentStatus = "PENDING",
                 transactionId = (string)null,
@@ -212,7 +220,7 @@ namespace TestPaymentGateway.Controllers
         }
 
         [HttpGet("school-fee-payment-page")]
-        public IActionResult SchoolFeePaymentPage(string childId, string feeId, string email)
+        public IActionResult SchoolFeePaymentPage(string childId, string feeId, string email, string paymentType = null)
         {
             // Fetch the fee document
             var feeRef = _firestore.Collection("Child")
@@ -225,8 +233,16 @@ namespace TestPaymentGateway.Controllers
                 return NotFound("Fee not found.");
 
             var fee = feeSnapshot.ToDictionary();
+
             decimal amount = Convert.ToDecimal(fee["amount"]);
             string description = fee["description"].ToString()?.Trim();
+            string type = fee["type"].ToString()?.Trim().ToUpper() ?? "ONE_TIME";
+
+            // Adjust amount if the user explicitly chose MONTHLY
+            if (!string.IsNullOrEmpty(paymentType) && paymentType.ToUpper() == "MONTHLY")
+            {
+                amount = Math.Round(Convert.ToDecimal(fee["amount"]) / 10, 2); // 10 months
+            }
 
             // Fetch child document safely
             var childRef = feeSnapshot.Reference.Parent.Parent;
@@ -235,10 +251,8 @@ namespace TestPaymentGateway.Controllers
             string firstName = childSnapshot.Exists ? childSnapshot.GetValue<string>("firstName")?.Trim() ?? "" : "";
             string lastName = childSnapshot.Exists ? childSnapshot.GetValue<string>("lastName")?.Trim() ?? "" : "";
 
-            // Combine safely with single space, trim extra spaces
             string childName = $"{firstName} {lastName}".Trim();
 
-            // Debug: log final item name for PayFast signature
             Console.WriteLine($"Final item_name for PayFast: '{childName}'");
 
             // Create transaction
@@ -260,23 +274,19 @@ namespace TestPaymentGateway.Controllers
                 itemDescription: description,
                 emailAddress: email,
                 customStr1: childId,
-                customStr2: feeId
+                customStr2: feeId,
+               customStr3: fee["type"].ToString() // "ONE_TIME" or "MONTHLY"
             );
 
             return Content(htmlForm, "text/html");
         }
 
-
-
         [HttpGet("initiate-school-fee-payment")]
-        public IActionResult InitiateSchoolFeePayment(string childId, string feeId, string email)
+        public IActionResult InitiateSchoolFeePayment(string childId, string feeId, string email, string paymentType = null)
         {
-            // Redirect to the dedicated school fee payment page
-            return Redirect($"/api/payment/school-fee-payment-page?childId={childId}&feeId={feeId}&email={email}");
+            // Redirect to the dedicated school fee payment page, pass paymentType
+            return Redirect($"/api/payment/school-fee-payment-page?childId={childId}&feeId={feeId}&email={email}&paymentType={paymentType}");
         }
-
-
-
 
         public class SchoolFeeRequest
         {
@@ -287,4 +297,4 @@ namespace TestPaymentGateway.Controllers
             public DateTime DueDate { get; set; }
         }
     }
-}
+   }
