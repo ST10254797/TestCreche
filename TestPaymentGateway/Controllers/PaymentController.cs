@@ -214,8 +214,11 @@ namespace TestPaymentGateway.Controllers
         [HttpGet("initiate-school-fee-payment")]
         public IActionResult InitiateSchoolFeePayment(string childId, string feeId, string email)
         {
-            // Fetch fee document
-            var feeRef = _firestore.Collection("Child").Document(childId).Collection("Fees").Document(feeId);
+            // Fetch the fee document
+            var feeRef = _firestore.Collection("Child")
+                                    .Document(childId)
+                                    .Collection("Fees")
+                                    .Document(feeId);
             var feeSnapshot = feeRef.GetSnapshotAsync().Result;
 
             if (!feeSnapshot.Exists)
@@ -225,14 +228,16 @@ namespace TestPaymentGateway.Controllers
             decimal amount = Convert.ToDecimal(fee["amount"]);
             string description = fee["description"].ToString();
 
-            // Fetch child document for firstName and lastName
-            var childSnapshot = feeRef.Parent.Parent.GetSnapshotAsync().Result;
-            if (!childSnapshot.Exists)
-                return NotFound("Child not found.");
+            // Fetch child document safely
+            var childRef = feeSnapshot.Reference.Parent.Parent;
+            var childSnapshot = childRef.GetSnapshotAsync().Result;
+            string childName = childSnapshot.Exists
+                ? $"{childSnapshot.GetValue<string>("firstName")} {childSnapshot.GetValue<string>("lastName")}"
+                : "Unknown";
 
-            string firstName = childSnapshot.GetValue<string>("firstName");
-            string lastName = childSnapshot.GetValue<string>("lastName");
-            string childName = $"{firstName} {lastName}";
+            // Clean strings to remove extra spaces or invisible characters
+            childName = childName.Trim();
+            description = description.Trim();
 
             // Create transaction
             var transaction = new AppTransaction
@@ -248,16 +253,17 @@ namespace TestPaymentGateway.Controllers
 
             // Generate HTML form for PayFast
             string htmlForm = _payFastService.GeneratePaymentData(
-                amount,
-                itemName: childName,
-                itemDescription: description,
+                amount: amount,
+                itemName: childName,            // child name
+                itemDescription: description,   // fee description
                 emailAddress: email,
-                customStr1: childId,
-                customStr2: feeId
+                customStr1: childId,            // pass childId for tracking
+                customStr2: feeId                // pass feeId for tracking
             );
 
             return Content(htmlForm, "text/html");
         }
+
 
 
         public class SchoolFeeRequest
