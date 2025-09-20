@@ -226,18 +226,20 @@ namespace TestPaymentGateway.Controllers
 
             var fee = feeSnapshot.ToDictionary();
             decimal amount = Convert.ToDecimal(fee["amount"]);
-            string description = fee["description"].ToString();
+            string description = fee["description"].ToString()?.Trim();
 
             // Fetch child document safely
             var childRef = feeSnapshot.Reference.Parent.Parent;
             var childSnapshot = childRef.GetSnapshotAsync().Result;
-            string childName = childSnapshot.Exists
-                ? $"{childSnapshot.GetValue<string>("firstName")} {childSnapshot.GetValue<string>("lastName")}"
-                : "Unknown";
 
-            // Clean strings
-            childName = childName.Trim();
-            description = description.Trim();
+            string firstName = childSnapshot.Exists ? childSnapshot.GetValue<string>("firstName")?.Trim() ?? "" : "";
+            string lastName = childSnapshot.Exists ? childSnapshot.GetValue<string>("lastName")?.Trim() ?? "" : "";
+
+            // Combine safely with single space, trim extra spaces
+            string childName = $"{firstName} {lastName}".Trim();
+
+            // Debug: log final item name for PayFast signature
+            Console.WriteLine($"Final item_name for PayFast: '{childName}'");
 
             // Create transaction
             var transaction = new AppTransaction
@@ -263,6 +265,7 @@ namespace TestPaymentGateway.Controllers
 
             return Content(htmlForm, "text/html");
         }
+
 
 
         [HttpGet("initiate-school-fee-payment")]
