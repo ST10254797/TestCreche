@@ -30,17 +30,17 @@ namespace TestPaymentGateway.Services
             var androidCancelLink = "myapp://payment-cancel";
 
             var data = new Dictionary<string, string>
-            {
-                { "merchant_id", _merchantId },
-                { "merchant_key", _merchantKey },
-                { "return_url", $"{baseUrl}/api/payment/redirect?redirectUrl={Uri.EscapeDataString(androidReturnLink)}" },
-                { "cancel_url", $"{baseUrl}/api/payment/redirect?redirectUrl={Uri.EscapeDataString(androidCancelLink)}" },
-                { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
-                { "email_address", emailAddress },
-                { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
-                { "item_name", itemName },
-                { "item_description", itemDescription }
-            };
+{
+    { "merchant_id", _merchantId },
+    { "merchant_key", _merchantKey },
+    { "return_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidReturnLink}" },
+    { "cancel_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidCancelLink}" },
+    { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
+    { "email_address", emailAddress },
+    { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
+    { "item_name", itemName },
+    { "item_description", itemDescription }
+};
 
             if (!string.IsNullOrEmpty(customStr1))
                 data.Add("custom_str1", customStr1);
@@ -143,15 +143,7 @@ namespace TestPaymentGateway.Services
 
         protected string UrlEncode(string url)
         {
-            Dictionary<string, string> convertPairs = new Dictionary<string, string>()
-            {
-                {"%", "%25"}, {"!", "%21"}, {"#", "%23"}, {" ", "+"}, {"$", "%24"}, {"&", "%26"},
-                {"'", "%27"}, {"(", "%28"}, {")", "%29"}, {"*", "%2A"}, {"+", "%2B"}, {",", "%2C"},
-                {"/", "%2F"}, {":", "%3A"}, {";", "%3B"}, {"=", "%3D"}, {"?", "%3F"}, {"@", "%40"},
-                {"[", "%5B"}, {"]", "%5D"}
-            };
-            var replaceRegex = new Regex(@"[%!# $&'()*+,/:;=?@\[\]]");
-            return replaceRegex.Replace(url, match => convertPairs[match.Value]);
+            return Uri.EscapeDataString(url);
         }
     }
-}
+    }
