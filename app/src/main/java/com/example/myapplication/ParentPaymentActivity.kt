@@ -120,8 +120,8 @@ class ParentPaymentActivity : AppCompatActivity() {
                         // Update TextView
                         tvAmount.text = "R %.2f".format(displayAmount)
 
-                        // Reload WebView with updated amount and payment type
-                        initiateFeePayment(displayAmount)
+                        // Reload WebView dynamically
+                        initiateFeePayment()
                     }
 
                     // Initial display and WebView load
@@ -144,8 +144,7 @@ class ParentPaymentActivity : AppCompatActivity() {
     }
 
 
-    private fun initiateFeePayment(amount: Double) {
-        // Get selected payment type
+    private fun initiateFeePayment() {
         val rgPaymentType = findViewById<RadioGroup>(R.id.rgPaymentType)
         val selectedTypeId = rgPaymentType.checkedRadioButtonId
         val paymentType = when (selectedTypeId) {
@@ -153,6 +152,11 @@ class ParentPaymentActivity : AppCompatActivity() {
             R.id.rbMonthlyPayment -> "MONTHLY"
             else -> "FULL"
         }
+
+        // Calculate the amount based on payment type
+        val tvAmount = findViewById<TextView>(R.id.tvAmount)
+        val amountText = tvAmount.text.toString().replace("R ", "").replace(",", "")
+        val amount = amountText.toDoubleOrNull() ?: 0.0
 
         val url = "https://testcrecheapp.onrender.com/api/payment/initiate-school-fee-payment" +
                 "?childId=${URLEncoder.encode(childId, "UTF-8")}" +

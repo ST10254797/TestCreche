@@ -36,7 +36,10 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="be38e19d-adc2-4d5e-8f57-c74cf0b02111" name="Changes" comment="Added the payment gateway for the ParentPaymentActivity.kt" />
+    <list default="true" id="be38e19d-adc2-4d5e-8f57-c74cf0b02111" name="Changes" comment="Updated work">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/myapplication/ParentPaymentActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/myapplication/ParentPaymentActivity.kt" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -212,14 +215,23 @@
       <option name="project" value="LOCAL" />
       <updated>1758390101984</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Updated work">
+      <option name="closed" value="true" />
+      <created>1758390161435</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1758390161435</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Test commit" />
     <MESSAGE value="Updated the PaymentActivity.kt" />
     <MESSAGE value="Added the payment gateway for the ParentPaymentActivity.kt" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added the payment gateway for the ParentPaymentActivity.kt" />
+    <MESSAGE value="Updated work" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated work" />
   </component>
   <component name="play_dynamic_filters_status">
     <option name="appIdToCheckInfo">
