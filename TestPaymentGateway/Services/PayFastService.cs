@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Web;
 
 namespace TestPaymentGateway.Services
 {
@@ -30,17 +30,17 @@ namespace TestPaymentGateway.Services
             var androidCancelLink = "myapp://payment-cancel";
 
             var data = new Dictionary<string, string>
-{
-    { "merchant_id", _merchantId },
-    { "merchant_key", _merchantKey },
-    { "return_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidReturnLink}" },
-    { "cancel_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidCancelLink}" },
-    { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
-    { "email_address", emailAddress },
-    { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
-    { "item_name", itemName },
-    { "item_description", itemDescription }
-};
+            {
+                { "merchant_id", _merchantId },
+                { "merchant_key", _merchantKey },
+                { "return_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidReturnLink}" },
+                { "cancel_url", $"{baseUrl}/api/payment/redirect?redirectUrl={androidCancelLink}" },
+                { "notify_url", $"{baseUrl}/api/payment/payment-notify" },
+                { "email_address", emailAddress },
+                { "amount", amount.ToString("F2", CultureInfo.InvariantCulture) },
+                { "item_name", itemName },
+                { "item_description", itemDescription }
+            };
 
             if (!string.IsNullOrEmpty(customStr1))
                 data.Add("custom_str1", customStr1);
@@ -147,4 +147,4 @@ namespace TestPaymentGateway.Services
             return Uri.EscapeDataString(url);
         }
     }
-    }
+}
