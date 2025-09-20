@@ -1,0 +1,66 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <!-- Child Name -->
+    <TextView
+        android:id="@+id/tvChildName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Child Name"
+        android:textSize="18sp"
+        android:textStyle="bold"/>
+
+    <!-- Fee Description -->
+    <TextView
+        android:id="@+id/tvFeeDescription"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fee Description"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp"/>
+
+    <!-- Amount -->
+    <TextView
+        android:id="@+id/tvAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Amount"
+        android:textSize="16sp"
+        android:layout_marginTop="4dp"/>
+
+    <!-- Payment Type Selection -->
+    <RadioGroup
+        android:id="@+id/rgPaymentType"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp">
+
+        <RadioButton
+            android:id="@+id/rbFullPayment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Full Payment"
+            android:checked="true"/> <!-- Default selection -->
+
+        <RadioButton
+            android:id="@+id/rbMonthlyPayment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Monthly Payment" />
+
+    </RadioGroup>
+
+    <!-- Payment WebView -->
+    <WebView
+        android:id="@+id/wvPayment"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"/>
+
+</LinearLayout>

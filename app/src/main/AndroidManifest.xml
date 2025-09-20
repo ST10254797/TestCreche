@@ -12,7 +12,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CrecheManagementApp">
-
+        <activity
+            android:name=".ParentPaymentActivity"
+            android:exported="false" />
         <!-- Payment Activity with Deep Links -->
         <activity
             android:name=".PaymentActivity"
@@ -24,11 +26,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <!-- Deep links for PayFast -->
-                <data android:scheme="myapp" android:host="payment-success" />
-                <data android:scheme="myapp" android:host="payment-cancel" />
+                <data
+                    android:host="payment-success"
+                    android:scheme="myapp" />
+                <data
+                    android:host="payment-cancel"
+                    android:scheme="myapp" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".EmergencyContactActivity"
             android:exported="false" />
@@ -46,6 +51,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
