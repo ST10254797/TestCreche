@@ -1,3 +1,7 @@
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
+using Google.Cloud.Firestore.V1;
+using Grpc.Auth;
 using TestPaymentGateway;
 using TestPaymentGateway.Services;
 
@@ -22,7 +26,31 @@ builder.Services.AddScoped<PayFastService>(serviceProvider =>
     return new PayFastService(merchantId, merchantKey, passphrase, sandboxUrl);
 });
 
-// Add Swagger/OpenAPI support
+// -------------------- Firestore Initialization --------------------
+
+// Read Firebase service account JSON from environment variable
+var firebaseJson = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS_JSON");
+if (string.IsNullOrEmpty(firebaseJson))
+{
+    throw new InvalidOperationException("Environment variable GOOGLE_APPLICATION_CREDENTIALS_JSON is not set.");
+}
+
+// Create GoogleCredential from JSON
+var credential = GoogleCredential.FromJson(firebaseJson);
+
+// Create FirestoreClient with the credential
+var firestoreClient = new FirestoreClientBuilder
+{
+    ChannelCredentials = credential.ToChannelCredentials()
+}.Build();
+
+// Register FirestoreDb as singleton
+builder.Services.AddSingleton(provider =>
+{
+    return FirestoreDb.Create("testcreche", firestoreClient); // replace with your Firebase Project ID
+});
+
+// -------------------- Swagger / OpenAPI --------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -44,7 +72,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Comment out HTTPS redirection for now on Render
+// Commented HTTPS redirection for Render
 // app.UseHttpsRedirection();
 
 app.UseStaticFiles();
@@ -56,6 +84,9 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
+
+app.MapControllers(); // This enables routes defined in ApiController classes
+
 
 // -------------------- Bind to Render port --------------------
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
