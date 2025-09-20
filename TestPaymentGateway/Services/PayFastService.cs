@@ -127,12 +127,12 @@ namespace TestPaymentGateway.Services
             if (!string.IsNullOrEmpty(_passphrase))
                 orderedData.Add(new KeyValuePair<string, string>("passphrase", _passphrase));
 
-            // --- Build payload string ---
+            // --- Build payload string for signature (raw values!) ---
             var payload = new StringBuilder();
             for (int i = 0; i < orderedData.Count; i++)
             {
                 var item = orderedData[i];
-                payload.Append($"{item.Key}={UrlEncode(item.Value)}");
+                payload.Append($"{item.Key}={item.Value}"); // raw value here
                 if (i < orderedData.Count - 1)
                     payload.Append("&");
             }
