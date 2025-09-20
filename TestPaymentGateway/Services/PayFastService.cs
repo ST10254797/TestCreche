@@ -122,44 +122,40 @@ namespace TestPaymentGateway.Services
         // Portions adapted from Payfast Nuget Package Code
         public string CreateSignature(Dictionary<string, string> data)
         {
-            var orderedData = new List<KeyValuePair<string, string>>
-        {
-            new KeyValuePair<string, string>("merchant_id", data.ContainsKey("merchant_id") ? data["merchant_id"] : ""),
-            new KeyValuePair<string, string>("merchant_key", data.ContainsKey("merchant_key") ? data["merchant_key"] : ""),
-            new KeyValuePair<string, string>("return_url", data.ContainsKey("return_url") ? data["return_url"] : ""),
-            new KeyValuePair<string, string>("cancel_url", data.ContainsKey("cancel_url") ? data["cancel_url"] : ""),
-            new KeyValuePair<string, string>("notify_url", data.ContainsKey("notify_url") ? data["notify_url"] : ""),
-            new KeyValuePair<string, string>("email_address", data.ContainsKey("email_address") ? data["email_address"] : ""),
-            new KeyValuePair<string, string>("amount", data.ContainsKey("amount") ? data["amount"] : ""),
-            new KeyValuePair<string, string>("item_name", data.ContainsKey("item_name") ? data["item_name"] : ""),
-            new KeyValuePair<string, string>("item_description", data.ContainsKey("item_description") ? data["item_description"] : ""),
-            new KeyValuePair<string, string>("passphrase", _passphrase)
-        };
+            // Filter: exclude signature, exclude empty values
+            var filtered = data
+                .Where(kv => !string.IsNullOrEmpty(kv.Value) && kv.Key != "signature")
+                .OrderBy(kv => kv.Key); // ✅ sort alphabetically
 
-            var payload = new StringBuilder();
-            foreach (var item in orderedData)
+            // Build query string
+            var payload = string.Join("&", filtered.Select(kv =>
+                $"{kv.Key}={UrlEncode(kv.Value)}"));
+
+            // Append passphrase if set
+            if (!string.IsNullOrEmpty(_passphrase))
             {
-                if (item.Key != orderedData.Last().Key)
-                {
-                    payload.Append($"{item.Key}={UrlEncode(item.Value)}&");
-                }
-                else
-                {
-                    payload.Append($"{item.Key}={UrlEncode(item.Value)}");
-                }
+                payload += $"&passphrase={UrlEncode(_passphrase)}";
             }
 
-            var md5 = MD5.Create();
-            var inputBytes = Encoding.ASCII.GetBytes(payload.ToString());
+            // 🔍 Debug log
+            Console.WriteLine("=== PayFast Signature Debug ===");
+            Console.WriteLine("Payload before hashing:");
+            Console.WriteLine(payload);
+            Console.WriteLine("===============================");
+
+            using var md5 = MD5.Create();
+            var inputBytes = Encoding.UTF8.GetBytes(payload);
             var hash = md5.ComputeHash(inputBytes);
 
-            var signature = new StringBuilder();
-            for (int i = 0; i < hash.Length; i++)
-            {
-                signature.Append(hash[i].ToString("x2"));
-            }
-            return signature.ToString();
+            var signature = BitConverter.ToString(hash).Replace("-", "").ToLower();
+
+            // 🔍 Debug log
+            Console.WriteLine("Generated Signature: " + signature);
+            Console.WriteLine("===============================");
+
+            return signature;
         }
+
 
         // Adapted from Payfast Nuget Package Code
         protected string UrlEncode(string url)
