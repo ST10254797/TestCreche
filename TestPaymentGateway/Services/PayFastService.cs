@@ -20,7 +20,8 @@ namespace TestPaymentGateway.Services
             _sandboxUrl = sandboxUrl;
         }
 
-        public string GeneratePaymentData(decimal amount, string itemName, string itemDescription, string emailAddress)
+        public string GeneratePaymentData(decimal amount, string itemName, string itemDescription, string emailAddress,
+                                    string customStr1 = null, string customStr2 = null)
         {
             // Base URL of your server
             var baseUrl = Environment.GetEnvironmentVariable("BaseUrl")
@@ -43,6 +44,13 @@ namespace TestPaymentGateway.Services
         { "item_name", itemName },
         { "item_description", itemDescription }
     };
+
+            // Add custom fields if provided
+            if (!string.IsNullOrEmpty(customStr1))
+                data.Add("custom_str1", customStr1);
+
+            if (!string.IsNullOrEmpty(customStr2))
+                data.Add("custom_str2", customStr2);
 
             var signature = CreateSignature(data);
             data.Add("signature", signature);
@@ -109,7 +117,6 @@ namespace TestPaymentGateway.Services
 
             return htmlForm;
         }
-
 
 
         // Portions adapted from Payfast Nuget Package Code

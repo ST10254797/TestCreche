@@ -1,5 +1,6 @@
 using TestPaymentGateway;
 using TestPaymentGateway.Services;
+using Google.Cloud.Firestore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,17 @@ builder.Services.AddScoped<PayFastService>(serviceProvider =>
     var passphrase = configuration["PayFast_Passphrase"];
     var sandboxUrl = configuration["PayFast_SandboxUrl"];
     return new PayFastService(merchantId, merchantKey, passphrase, sandboxUrl);
+});
+
+// -------------------- Firestore Initialization --------------------
+
+// Load your Firebase service account key (JSON file downloaded from Firebase console)
+Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", "firebase-key.json");
+
+// Register FirestoreDb as a singleton
+builder.Services.AddSingleton(provider =>
+{
+    return FirestoreDb.Create("testcreche"); // replace with your Firebase Project ID
 });
 
 // Add Swagger/OpenAPI support
