@@ -109,32 +109,25 @@ namespace TestPaymentGateway.Services
 
         public string CreateSignature(Dictionary<string, string> data)
         {
-            // --- Build ordered payload (PayFast NuGet style) ---
-            var orderedData = new List<KeyValuePair<string, string>>
-    {
-        new KeyValuePair<string, string>("merchant_id", data.ContainsKey("merchant_id") ? data["merchant_id"] : ""),
-        new KeyValuePair<string, string>("merchant_key", data.ContainsKey("merchant_key") ? data["merchant_key"] : ""),
-        new KeyValuePair<string, string>("return_url", data.ContainsKey("return_url") ? data["return_url"] : ""),
-        new KeyValuePair<string, string>("cancel_url", data.ContainsKey("cancel_url") ? data["cancel_url"] : ""),
-        new KeyValuePair<string, string>("notify_url", data.ContainsKey("notify_url") ? data["notify_url"] : ""),
-        new KeyValuePair<string, string>("email_address", data.ContainsKey("email_address") ? data["email_address"] : ""),
-        new KeyValuePair<string, string>("amount", data.ContainsKey("amount") ? data["amount"] : ""),
-        new KeyValuePair<string, string>("item_name", data.ContainsKey("item_name") ? data["item_name"] : ""),
-        new KeyValuePair<string, string>("item_description", data.ContainsKey("item_description") ? data["item_description"] : "")
-    };
-
-            // Append passphrase if set
+            // --- Copy dictionary and optionally add passphrase ---
+            var dataForSignature = new Dictionary<string, string>(data);
             if (!string.IsNullOrEmpty(_passphrase))
-                orderedData.Add(new KeyValuePair<string, string>("passphrase", _passphrase));
-
-            // --- Build payload string for signature (raw values!) ---
-            var payload = new StringBuilder();
-            for (int i = 0; i < orderedData.Count; i++)
             {
-                var item = orderedData[i];
-                payload.Append($"{item.Key}={item.Value}"); // raw value here
-                if (i < orderedData.Count - 1)
+                dataForSignature.Add("passphrase", _passphrase);
+            }
+
+            // --- Sort by key (PayFast requirement) ---
+            var orderedData = dataForSignature.OrderBy(kv => kv.Key, StringComparer.Ordinal);
+
+            // --- Build payload string with URL encoding ---
+            var payload = new StringBuilder();
+            bool first = true;
+            foreach (var kv in orderedData)
+            {
+                if (!first)
                     payload.Append("&");
+                payload.Append($"{kv.Key}={UrlEncode(kv.Value)}");
+                first = false;
             }
 
             // --- Debugging output ---
