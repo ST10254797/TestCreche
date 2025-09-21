@@ -7,6 +7,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 
+//Updated the code
+
 namespace TestPaymentGateway.Services
 {
     public class PayFastService
