@@ -107,55 +107,76 @@ namespace TestPaymentGateway.Controllers
         [HttpPost("payment-notify")]
         public async Task<IActionResult> Notify()
         {
-            var form = await Request.ReadFormAsync();
-            var notification = new PaymentNotification
+            try
             {
-                PaymentStatus = form["payment_status"],
-                PfPaymentId = form["pf_payment_id"],
-                ItemName = form["item_name"],
-                ItemDescription = form["item_description"],
-                AmountGross = decimal.TryParse(form["amount_gross"], out var gross) ? gross : 0,
-                CustomStr1 = form["custom_str1"], // childId
-                CustomStr2 = form["custom_str2"], // feeId
-                CustomStr3 = form["custom_str3"], // paymentType
-                EmailAddress = form["email_address"]
-            };
-
-            if (notification.PaymentStatus == "COMPLETE")
-            {
-                var transactions = _transactionService.GetTransactions();
-                var transaction = transactions.FirstOrDefault(t => t.OrderId == notification.ItemName);
-
-                if (transaction != null)
+                var form = await Request.ReadFormAsync();
+                var notification = new PaymentNotification
                 {
-                    transaction.PaymentId = notification.PfPaymentId;
-                    transaction.PaymentStatus = notification.PaymentStatus;
-                    transaction.AmountPaid = notification.AmountGross;
+                    PaymentStatus = form["payment_status"],
+                    PfPaymentId = form["pf_payment_id"],
+                    ItemName = form["item_name"],            // Usually the child’s name
+                    ItemDescription = form["item_description"],
+                    AmountGross = decimal.TryParse(form["amount_gross"], out var gross) ? gross : 0,
+                    CustomStr1 = form["custom_str1"], // childId
+                    CustomStr2 = form["custom_str2"], // feeId
+                    CustomStr3 = form["custom_str3"], // paymentType
+                    EmailAddress = form["email_address"]
+                };
 
-                    _transactionService.SaveTransactions(transactions);
+                // Only act on successful payments
+                if (notification.PaymentStatus?.ToUpper() == "COMPLETE")
+                {
+                    var transactions = _transactionService.GetTransactions();
+                    var transaction = transactions.FirstOrDefault(t =>
+                        t.OrderId == notification.CustomStr2); // use feeId instead of ItemName for clarity
+
+                    if (transaction != null)
+                    {
+                        transaction.PaymentId = notification.PfPaymentId;
+                        transaction.PaymentStatus = notification.PaymentStatus;
+                        transaction.AmountPaid = notification.AmountGross;
+
+                        _transactionService.SaveTransactions(transactions);
+                    }
 
                     // Update Firestore school fee document
                     if (!string.IsNullOrEmpty(notification.CustomStr1) && !string.IsNullOrEmpty(notification.CustomStr2))
                     {
                         var childId = notification.CustomStr1;
                         var feeId = notification.CustomStr2;
-                        var feeRef = _firestore.Collection("Child").Document(childId).Collection("Fees").Document(feeId);
+                        var feeRef = _firestore
+                            .Collection("Child")
+                            .Document(childId)
+                            .Collection("Fees")
+                            .Document(feeId);
 
                         var update = new Dictionary<string, object>
                 {
                     { "paymentStatus", "PAID" },
-                    { "transactionId", transaction.PaymentId },
+                    { "transactionId", notification.PfPaymentId },
                     { "paidAt", DateTime.UtcNow },
-                    { "amountPaid", transaction.AmountPaid },        // Save actual amount paid
-                    { "paymentType", notification.CustomStr3 ?? "ONE_TIME" } // Save chosen type
+                    { "amountPaid", notification.AmountGross },
+                    { "paymentType", notification.CustomStr3 ?? "ONE_TIME" }
                 };
+
                         await feeRef.UpdateAsync(update);
                     }
                 }
-            }
+                else
+                {
+                    // Optionally log failed/cancelled payments
+                    Console.WriteLine($"Payment not complete. Status = {notification.PaymentStatus}");
+                }
 
-            return Ok();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in payment-notify: {ex.Message}");
+                return StatusCode(500, "Error processing payment notification");
+            }
         }
+
 
 
 
