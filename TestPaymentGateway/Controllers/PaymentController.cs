@@ -155,7 +155,7 @@ namespace TestPaymentGateway.Controllers
                     { "paymentStatus", "PAID" },
                     { "transactionId", notification.PfPaymentId },
                     { "paidAt", DateTime.UtcNow },
-                    { "amountPaid", notification.AmountGross },
+                    { "amountPaid", Convert.ToDouble(notification.AmountGross) },
                     { "paymentType", notification.CustomStr3 ?? "ONE_TIME" }
                 };
 
