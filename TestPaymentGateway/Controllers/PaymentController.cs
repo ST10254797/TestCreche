@@ -221,16 +221,21 @@ namespace TestPaymentGateway.Controllers
             if (paymentType == "MONTHLY")
                 amount = Math.Round(amount / 10, 2);
 
-            var feeData = new
-            {
-                paymentType = paymentType,  // ✅ Store paymentType instead of type
-                description = request.Description,
-                amount = amount,
-                dueDate = request.DueDate,
-                paymentStatus = "PENDING",
-                transactionId = (string)null,
-                createdAt = DateTime.UtcNow
-            };
+            // Use a dictionary to control exactly what fields are stored
+            var feeData = new Dictionary<string, object>
+    {
+        { "paymentType", paymentType },  // Only store paymentType
+        { "description", request.Description },
+        { "amount", amount },
+        { "dueDate", request.DueDate },
+        { "paymentStatus", "PENDING" },
+        { "transactionId", null },
+        { "createdAt", DateTime.UtcNow }
+    };
+
+            // Just in case request has 'type', remove it
+            if (feeData.ContainsKey("type"))
+                feeData.Remove("type");
 
             await feeRef.SetAsync(feeData);
 
