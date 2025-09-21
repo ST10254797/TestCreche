@@ -216,19 +216,17 @@ namespace TestPaymentGateway.Controllers
             // Normalize paymentType
             string finalPaymentType = paymentType?.ToUpper() ?? "ONE_TIME";
 
-            // Use 15000 as the base amount instead of request.Amount
-            decimal baseAmount = 15000m;
+            decimal amount = request.Amount;
 
             // If monthly, divide into 10 installments
-            double amountToStore = finalPaymentType == "MONTHLY"
-                ? Math.Round((double)baseAmount / 10, 2)
-                : (double)baseAmount;
+            if (finalPaymentType == "MONTHLY")
+                amount = Math.Round(amount / 10, 2);
 
             var feeData = new Dictionary<string, object>
     {
         { "paymentType", finalPaymentType },
         { "description", request.Description },
-        { "amount", amountToStore },   // Firestore-safe double
+        { "amount", amount },
         { "dueDate", request.DueDate },
         { "paymentStatus", "PENDING" },
         { "transactionId", null },
@@ -237,9 +235,8 @@ namespace TestPaymentGateway.Controllers
 
             await feeRef.SetAsync(feeData);
 
-            return Ok(new { feeId, message = "School fee created successfully.", amount = amountToStore });
+            return Ok(new { feeId, message = "School fee created successfully." });
         }
-
 
 
         [HttpGet("school-fee-payment-page")]
