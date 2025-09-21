@@ -243,6 +243,34 @@ namespace TestPaymentGateway.Controllers
             return Ok(new { feeId, message = "School fee created successfully." });
         }
 
+        [HttpPost("create-payment-request")]
+        public async Task<IActionResult> CreatePaymentRequest([FromQuery] string childId,
+                                                      [FromQuery] string feeId,
+                                                      [FromQuery] string email,
+                                                      [FromQuery] decimal amount,
+                                                      [FromQuery] string paymentType = "ONE_TIME")
+        {
+            if (string.IsNullOrEmpty(childId) || string.IsNullOrEmpty(email) || amount <= 0)
+                return BadRequest("Missing required data for payment");
+
+            var feeRef = _firestore.Collection("Child")
+                                    .Document(childId)
+                                    .Collection("Fees")
+                                    .Document(feeId);
+
+            var updateData = new Dictionary<string, object>
+{
+    { "amount", Convert.ToDouble(amount) },
+    { "paymentType", paymentType },
+    { "paymentStatus", "PENDING" },
+    { "createdAt", DateTime.UtcNow } // Firestore can handle DateTime as Timestamp
+};
+
+            await feeRef.SetAsync(updateData, SetOptions.MergeAll);
+
+            return Ok(new { message = "Payment request created successfully." });
+        }
+
 
         [HttpGet("school-fee-payment-page")]
         public IActionResult SchoolFeePaymentPage(string childId, string feeId, string email, string paymentType = null)
