@@ -241,23 +241,35 @@ namespace TestPaymentGateway.Controllers
         [HttpGet("school-fee-payment-page")]
         public IActionResult SchoolFeePaymentPage(string childId, string feeId, string email, string paymentType = null)
         {
+            // Reference to the specific fee document
             var feeRef = _firestore.Collection("Child")
                                     .Document(childId)
                                     .Collection("Fees")
                                     .Document(feeId);
+
             var feeSnapshot = feeRef.GetSnapshotAsync().Result;
             if (!feeSnapshot.Exists)
                 return NotFound("Fee not found.");
 
+            // Convert Firestore document to dictionary
             var fee = feeSnapshot.ToDictionary();
             string description = fee["description"].ToString()?.Trim();
             decimal baseAmount = Convert.ToDecimal(fee["amount"]);
-            string type = fee["type"].ToString()?.Trim().ToUpper() ?? "ONE_TIME";
 
-            // Adjust amount if user chose monthly
-            decimal amountToPay = baseAmount;
-            if (!string.IsNullOrEmpty(paymentType) && paymentType.ToUpper() == "MONTHLY")
-                amountToPay = Math.Round(baseAmount / 10, 2);
+            // Use only 'paymentType' from Firestore; fallback to ONE_TIME
+            string existingPaymentType = fee.ContainsKey("paymentType")
+                ? fee["paymentType"].ToString()?.Trim().ToUpper()
+                : "ONE_TIME";
+
+            // Determine the final payment type to use
+            string finalPaymentType = !string.IsNullOrEmpty(paymentType)
+                ? paymentType.ToUpper()
+                : existingPaymentType;
+
+            // Adjust amount if monthly
+            decimal amountToPay = finalPaymentType == "MONTHLY"
+                ? Math.Round(baseAmount / 10, 2)
+                : baseAmount;
 
             // Fetch child name
             var childRef = feeSnapshot.Reference.Parent.Parent;
@@ -266,7 +278,7 @@ namespace TestPaymentGateway.Controllers
             string lastName = childSnapshot.Exists ? childSnapshot.GetValue<string>("lastName")?.Trim() ?? "" : "";
             string childName = $"{firstName} {lastName}".Trim();
 
-            // Create transaction record
+            // Create a transaction record
             var transaction = new AppTransaction
             {
                 OrderId = feeId,
@@ -278,7 +290,7 @@ namespace TestPaymentGateway.Controllers
             };
             _transactionService.AddTransaction(transaction);
 
-            // Generate PayFast HTML form, now passing paymentType as customStr3
+            // Generate PayFast HTML form using only finalPaymentType
             string htmlForm = _payFastService.GeneratePaymentData(
                 amount: amountToPay,
                 itemName: childName,
@@ -286,11 +298,12 @@ namespace TestPaymentGateway.Controllers
                 emailAddress: email,
                 customStr1: childId,
                 customStr2: feeId,
-                customStr3: paymentType?.ToUpper() ?? type // "MONTHLY" or "ONE_TIME"
+                customStr3: finalPaymentType // Only use paymentType, no 'type'
             );
 
             return Content(htmlForm, "text/html");
         }
+
 
 
         [HttpGet("initiate-school-fee-payment")]
