@@ -4,8 +4,6 @@ using Google.Cloud.Firestore.V1;
 using Grpc.Auth;
 using TestPaymentGateway;
 using TestPaymentGateway.Services;
-using System;
-using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,29 +50,11 @@ builder.Services.AddSingleton(provider =>
     return FirestoreDb.Create("testcreche", firestoreClient); // replace with your Firebase Project ID
 });
 
-var app = builder.Build();
+// -------------------- Swagger / OpenAPI --------------------
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-// -------------------- One-time Firestore Cleanup in Background --------------------
-try
-{
-    var firestoreDb = app.Services.GetRequiredService<FirestoreDb>();
-    // Run cleanup in a background task
-    _ = Task.Run(async () =>
-    {
-        try
-        {
-            await RemoveTypeFieldFromFees(firestoreDb);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Firestore cleanup failed: " + ex.Message);
-        }
-    });
-}
-catch (Exception ex)
-{
-    Console.WriteLine("Failed to start Firestore cleanup task: " + ex.Message);
-}
+var app = builder.Build();
 
 // -------------------- Middleware --------------------
 
@@ -92,7 +72,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// app.UseHttpsRedirection(); // Commented for Render
+// Commented HTTPS redirection for Render
+// app.UseHttpsRedirection();
+
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
@@ -103,34 +85,11 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
 
-app.MapControllers();
+app.MapControllers(); // This enables routes defined in ApiController classes
+
 
 // -------------------- Bind to Render port --------------------
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.Run();
-
-// -------------------- Firestore Cleanup Method --------------------
-async Task RemoveTypeFieldFromFees(FirestoreDb db)
-{
-    Console.WriteLine("Starting Firestore cleanup: removing 'type' field...");
-
-    var childrenSnapshot = await db.Collection("Child").GetSnapshotAsync();
-
-    foreach (var childDoc in childrenSnapshot.Documents)
-    {
-        var feesSnapshot = await childDoc.Reference.Collection("Fees").GetSnapshotAsync();
-
-        foreach (var feeDoc in feesSnapshot.Documents)
-        {
-            if (feeDoc.ContainsField("type"))
-            {
-                Console.WriteLine($"Removing 'type' from {childDoc.Id}/{feeDoc.Id}");
-                await feeDoc.Reference.UpdateAsync("type", FieldValue.Delete);
-            }
-        }
-    }
-
-    Console.WriteLine("Firestore cleanup completed!");
-}
