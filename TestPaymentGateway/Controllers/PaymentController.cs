@@ -215,13 +215,15 @@ namespace TestPaymentGateway.Controllers
 
             decimal amount = request.Amount;
 
+            string paymentType = request.Type?.ToUpper() ?? "ONE_TIME";
+
             // If monthly, divide into 10 installments
-            if (request.Type?.ToUpper() == "MONTHLY")
+            if (paymentType == "MONTHLY")
                 amount = Math.Round(amount / 10, 2);
 
             var feeData = new
             {
-                type = request.Type,
+                paymentType = paymentType,  // ✅ Store paymentType instead of type
                 description = request.Description,
                 amount = amount,
                 dueDate = request.DueDate,
@@ -231,6 +233,7 @@ namespace TestPaymentGateway.Controllers
             };
 
             await feeRef.SetAsync(feeData);
+
             return Ok(new { feeId, message = "School fee created successfully." });
         }
 
