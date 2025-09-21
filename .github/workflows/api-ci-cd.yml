@@ -1,0 +1,29 @@
+name: C# API Build for Render
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore ./TestPaymentGateway/TestPaymentGateway.csproj
+
+    - name: Build API
+      run: dotnet build ./TestPaymentGateway/TestPaymentGateway.csproj --configuration Release
+
+    - name: Publish API
+      run: dotnet publish ./TestPaymentGateway/TestPaymentGateway.csproj --configuration Release --output ./publish
