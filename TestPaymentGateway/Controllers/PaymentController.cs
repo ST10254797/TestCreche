@@ -259,12 +259,12 @@ namespace TestPaymentGateway.Controllers
                                     .Document(feeId);
 
             var updateData = new Dictionary<string, object>
-    {
-        { "amount", amount },
-        { "paymentType", paymentType },
-        { "paymentStatus", "PENDING" },
-        { "createdAt", DateTime.UtcNow }
-    };
+{
+    { "amount", Convert.ToDouble(amount) },
+    { "paymentType", paymentType },
+    { "paymentStatus", "PENDING" },
+    { "createdAt", DateTime.UtcNow } // Firestore can handle DateTime as Timestamp
+};
 
             await feeRef.SetAsync(updateData, SetOptions.MergeAll);
 
