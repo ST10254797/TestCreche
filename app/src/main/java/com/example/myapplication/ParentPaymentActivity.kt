@@ -24,6 +24,8 @@ class ParentPaymentActivity : AppCompatActivity() {
     private lateinit var feeId: String
     private lateinit var parentEmail: String
     private var feeListener: ListenerRegistration? = null
+    private var currentAmount: Double = 0.0 // Admin-set fee amount
+    private var selectedPaymentType: String = "FULL" // Track parent selection
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +39,7 @@ class ParentPaymentActivity : AppCompatActivity() {
             insets
         }
 
-        // Retrieve info passed from ParentDashboardActivity
+        // Retrieve info passed from previous activity
         childId = intent.getStringExtra("childId") ?: ""
         feeId = intent.getStringExtra("feeId") ?: ""
         parentEmail = intent.getStringExtra("parentEmail") ?: ""
@@ -48,20 +50,16 @@ class ParentPaymentActivity : AppCompatActivity() {
         webView = findViewById(R.id.wvPayment)
         webView.settings.javaScriptEnabled = true
         WebView.setWebContentsDebuggingEnabled(true)
-
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                 Log.d("ParentPaymentActivity", "Navigating to: $url")
                 url?.let {
                     when {
                         it.startsWith("myapp://payment-success") -> {
-                            Log.d("ParentPaymentActivity", "Detected success redirect")
-                            // ✅ Don’t navigate back immediately — wait for Firestore listener
                             Toast.makeText(this@ParentPaymentActivity, "Waiting for confirmation...", Toast.LENGTH_SHORT).show()
                             return true
                         }
                         it.startsWith("myapp://payment-cancel") -> {
-                            Log.d("ParentPaymentActivity", "Detected cancel redirect")
                             navigateBack(false)
                             return true
                         }
@@ -76,7 +74,6 @@ class ParentPaymentActivity : AppCompatActivity() {
             }
         }
 
-        // Load child and fee info first
         loadChildAndFeeData()
 
         // Handle back gestures
@@ -90,98 +87,89 @@ class ParentPaymentActivity : AppCompatActivity() {
 
     private fun loadChildAndFeeData() {
         val db = FirebaseFirestore.getInstance()
-
-        // Fetch child info
         val childRef = db.collection("Child").document(childId)
+
         childRef.get().addOnSuccessListener { childSnapshot ->
             val firstName = childSnapshot.getString("firstName") ?: ""
             val lastName = childSnapshot.getString("lastName") ?: ""
             findViewById<TextView>(R.id.tvChildName).text = "$firstName $lastName"
 
-            // Fetch fee info
-            val feeRef = childRef.collection("Fees").document(feeId)
-            feeRef.get().addOnSuccessListener { feeSnapshot ->
-                if (feeSnapshot.exists()) {
-                    val description = feeSnapshot.getString("description") ?: ""
-                    val originalAmount = feeSnapshot.getDouble("amount") ?: 0.0
+            // Fetch the latest fee document
+            val feesRef = childRef.collection("Fees")
+            feesRef.orderBy("createdAt").limitToLast(1)
+                .get()
+                .addOnSuccessListener { feeSnapshot ->
+                    val feeDoc = feeSnapshot.documents.firstOrNull()
+                    if (feeDoc != null) {
+                        feeId = feeDoc.id
+                        val description = feeDoc.getString("description") ?: ""
+                        currentAmount = feeDoc.getDouble("amount") ?: 0.0
 
-                    findViewById<TextView>(R.id.tvFeeDescription).text = description
+                        findViewById<TextView>(R.id.tvFeeDescription).text = description
 
-                    val rgPaymentType = findViewById<RadioGroup>(R.id.rgPaymentType)
-                    val tvAmount = findViewById<TextView>(R.id.tvAmount)
+                        val rgPaymentType = findViewById<RadioGroup>(R.id.rgPaymentType)
+                        val tvAmount = findViewById<TextView>(R.id.tvAmount)
 
-                    fun updateAmountDisplay() {
-                        val paymentType = when (rgPaymentType.checkedRadioButtonId) {
-                            R.id.rbFullPayment -> "FULL"
-                            R.id.rbMonthlyPayment -> "MONTHLY"
-                            else -> "FULL"
+                        // Function to update amount display based on selection
+                        fun updateAmountDisplay(): Double {
+                            selectedPaymentType = when (rgPaymentType.checkedRadioButtonId) {
+                                R.id.rbFullPayment -> "FULL"
+                                R.id.rbMonthlyPayment -> "MONTHLY"
+                                else -> "FULL"
+                            }
+
+                            val displayAmount = if (selectedPaymentType == "MONTHLY") {
+                                Math.round(currentAmount / 10 * 100.0) / 100.0
+                            } else currentAmount
+
+                            tvAmount.text = "R %.2f".format(displayAmount)
+                            return displayAmount
                         }
-                        val displayAmount = if (paymentType == "MONTHLY") {
-                            Math.round(originalAmount / 10 * 100.0) / 100.0
-                        } else originalAmount
 
-                        // Update TextView
-                        tvAmount.text = "R %.2f".format(displayAmount)
+                        // Initial display and WebView load
+                        val initialAmount = updateAmountDisplay()
+                        initiateFeePayment(initialAmount)
 
-                        // Reload WebView dynamically
-                        initiateFeePayment()
+                        // Update when radio changes
+                        rgPaymentType.setOnCheckedChangeListener { _, _ ->
+                            val amount = updateAmountDisplay()
+                            initiateFeePayment(amount)
+                        }
+
+                    } else {
+                        Log.e("ParentPaymentActivity", "No fees found for child $childId")
+                        Toast.makeText(this, "No fees available", Toast.LENGTH_SHORT).show()
                     }
-
-                    // Initial display and WebView load
-                    updateAmountDisplay()
-
-                    // Listen for changes in payment type
-                    rgPaymentType.setOnCheckedChangeListener { _, _ ->
-                        updateAmountDisplay()
-                    }
-
-                } else {
-                    Log.e("ParentPaymentActivity", "Fee not found")
-                    Toast.makeText(this, "Fee not found", Toast.LENGTH_SHORT).show()
+                }.addOnFailureListener { e ->
+                    Log.e("ParentPaymentActivity", "Failed to fetch fee: ${e.message}")
+                    Toast.makeText(this, "Failed to load fee info", Toast.LENGTH_SHORT).show()
                 }
-            }
+
         }.addOnFailureListener {
             Log.e("ParentPaymentActivity", "Failed to fetch child data: ${it.message}")
             Toast.makeText(this, "Failed to load child info", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun initiateFeePayment() {
-        val rgPaymentType = findViewById<RadioGroup>(R.id.rgPaymentType)
-        val selectedTypeId = rgPaymentType.checkedRadioButtonId
-        val paymentType = when (selectedTypeId) {
-            R.id.rbFullPayment -> "FULL"
-            R.id.rbMonthlyPayment -> "MONTHLY"
-            else -> "FULL"
-        }
-
-        // Calculate the amount based on payment type
-        val tvAmount = findViewById<TextView>(R.id.tvAmount)
-        val amountText = tvAmount.text.toString().replace("R ", "").replace(",", "")
-        val amount = amountText.toDoubleOrNull() ?: 0.0
-
+    private fun initiateFeePayment(amount: Double) {
         val url = "https://testcrecheapp.onrender.com/api/payment/initiate-school-fee-payment" +
                 "?childId=${URLEncoder.encode(childId, "UTF-8")}" +
                 "&feeId=${URLEncoder.encode(feeId, "UTF-8")}" +
                 "&email=${URLEncoder.encode(parentEmail, "UTF-8")}" +
-                "&paymentType=${URLEncoder.encode(paymentType, "UTF-8")}" +
-                "&amount=${URLEncoder.encode(amount.toString(), "UTF-8")}"
+                "&amount=${URLEncoder.encode(amount.toString(), "UTF-8")}" +
+                "&paymentType=${URLEncoder.encode(selectedPaymentType, "UTF-8")}" // Pass selected type
 
         Log.d("ParentPaymentActivity", "Loading payment URL: $url")
         webView.loadUrl(url)
 
-        // Start listening for Firestore payment status update
         listenForPaymentStatus()
     }
 
     private fun listenForPaymentStatus() {
         val db = FirebaseFirestore.getInstance()
-        val feeRef = db.collection("Child")
-            .document(childId)
-            .collection("Fees")
-            .document(feeId)
+        val feeRef = db.collection("Child").document(childId).collection("Fees").document(feeId)
 
-        feeListener?.remove() // remove old listener if exists
+        feeListener?.remove()
         feeListener = feeRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
                 Log.e("ParentPaymentActivity", "Error listening for payment updates", e)
@@ -201,7 +189,6 @@ class ParentPaymentActivity : AppCompatActivity() {
                         "Payment successful! Amount: R$amountPaid, Type: $paymentType",
                         Toast.LENGTH_LONG
                     ).show()
-
                     navigateBack(true)
                 }
             }
@@ -209,8 +196,6 @@ class ParentPaymentActivity : AppCompatActivity() {
     }
 
     private fun navigateBack(paymentSuccess: Boolean) {
-        Log.d("ParentPaymentActivity", "Navigating back with paymentSuccess=$paymentSuccess")
-
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(intent)
@@ -219,6 +204,6 @@ class ParentPaymentActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        feeListener?.remove() // cleanup Firestore listener
+        feeListener?.remove()
     }
 }
