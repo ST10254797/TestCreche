@@ -107,55 +107,76 @@ namespace TestPaymentGateway.Controllers
         [HttpPost("payment-notify")]
         public async Task<IActionResult> Notify()
         {
-            var form = await Request.ReadFormAsync();
-            var notification = new PaymentNotification
+            try
             {
-                PaymentStatus = form["payment_status"],
-                PfPaymentId = form["pf_payment_id"],
-                ItemName = form["item_name"],
-                ItemDescription = form["item_description"],
-                AmountGross = decimal.TryParse(form["amount_gross"], out var gross) ? gross : 0,
-                CustomStr1 = form["custom_str1"], // childId
-                CustomStr2 = form["custom_str2"], // feeId
-                CustomStr3 = form["custom_str3"], // paymentType
-                EmailAddress = form["email_address"]
-            };
-
-            if (notification.PaymentStatus == "COMPLETE")
-            {
-                var transactions = _transactionService.GetTransactions();
-                var transaction = transactions.FirstOrDefault(t => t.OrderId == notification.ItemName);
-
-                if (transaction != null)
+                var form = await Request.ReadFormAsync();
+                var notification = new PaymentNotification
                 {
-                    transaction.PaymentId = notification.PfPaymentId;
-                    transaction.PaymentStatus = notification.PaymentStatus;
-                    transaction.AmountPaid = notification.AmountGross;
+                    PaymentStatus = form["payment_status"],
+                    PfPaymentId = form["pf_payment_id"],
+                    ItemName = form["item_name"],            // Usually the child’s name
+                    ItemDescription = form["item_description"],
+                    AmountGross = decimal.TryParse(form["amount_gross"], out var gross) ? gross : 0,
+                    CustomStr1 = form["custom_str1"], // childId
+                    CustomStr2 = form["custom_str2"], // feeId
+                    CustomStr3 = form["custom_str3"], // paymentType
+                    EmailAddress = form["email_address"]
+                };
 
-                    _transactionService.SaveTransactions(transactions);
+                // Only act on successful payments
+                if (notification.PaymentStatus?.ToUpper() == "COMPLETE")
+                {
+                    var transactions = _transactionService.GetTransactions();
+                    var transaction = transactions.FirstOrDefault(t =>
+                        t.OrderId == notification.CustomStr2); // use feeId instead of ItemName for clarity
+
+                    if (transaction != null)
+                    {
+                        transaction.PaymentId = notification.PfPaymentId;
+                        transaction.PaymentStatus = notification.PaymentStatus;
+                        transaction.AmountPaid = notification.AmountGross;
+
+                        _transactionService.SaveTransactions(transactions);
+                    }
 
                     // Update Firestore school fee document
                     if (!string.IsNullOrEmpty(notification.CustomStr1) && !string.IsNullOrEmpty(notification.CustomStr2))
                     {
                         var childId = notification.CustomStr1;
                         var feeId = notification.CustomStr2;
-                        var feeRef = _firestore.Collection("Child").Document(childId).Collection("Fees").Document(feeId);
+                        var feeRef = _firestore
+                            .Collection("Child")
+                            .Document(childId)
+                            .Collection("Fees")
+                            .Document(feeId);
 
                         var update = new Dictionary<string, object>
                 {
                     { "paymentStatus", "PAID" },
-                    { "transactionId", transaction.PaymentId },
+                    { "transactionId", notification.PfPaymentId },
                     { "paidAt", DateTime.UtcNow },
-                    { "amountPaid", transaction.AmountPaid },        // Save actual amount paid
-                    { "paymentType", notification.CustomStr3 ?? "ONE_TIME" } // Save chosen type
+                    { "amountPaid", Convert.ToDouble(notification.AmountGross) },
+                    { "paymentType", notification.CustomStr3 ?? "ONE_TIME" }
                 };
+
                         await feeRef.UpdateAsync(update);
                     }
                 }
-            }
+                else
+                {
+                    // Optionally log failed/cancelled payments
+                    Console.WriteLine($"Payment not complete. Status = {notification.PaymentStatus}");
+                }
 
-            return Ok();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in payment-notify: {ex.Message}");
+                return StatusCode(500, "Error processing payment notification");
+            }
         }
+
 
 
 
@@ -181,7 +202,7 @@ namespace TestPaymentGateway.Controllers
 
         // -------------------- School Fees --------------------
         [HttpPost("create-school-fee")]
-        public async Task<IActionResult> CreateSchoolFee([FromBody] SchoolFeeRequest request)
+        public async Task<IActionResult> CreateSchoolFee([FromBody] SchoolFeeRequest request, [FromQuery] string paymentType = "ONE_TIME")
         {
             if (string.IsNullOrEmpty(request.ChildId))
                 return BadRequest("ChildId is required.");
@@ -192,24 +213,28 @@ namespace TestPaymentGateway.Controllers
                                     .Collection("Fees")
                                     .Document(feeId);
 
+            // Normalize paymentType
+            string finalPaymentType = paymentType?.ToUpper() ?? "ONE_TIME";
+
             decimal amount = request.Amount;
 
             // If monthly, divide into 10 installments
-            if (request.Type?.ToUpper() == "MONTHLY")
+            if (finalPaymentType == "MONTHLY")
                 amount = Math.Round(amount / 10, 2);
 
-            var feeData = new
-            {
-                type = request.Type,
-                description = request.Description,
-                amount = amount,
-                dueDate = request.DueDate,
-                paymentStatus = "PENDING",
-                transactionId = (string)null,
-                createdAt = DateTime.UtcNow
-            };
+            var feeData = new Dictionary<string, object>
+    {
+        { "paymentType", finalPaymentType },
+        { "description", request.Description },
+        { "amount", amount },
+        { "dueDate", request.DueDate },
+        { "paymentStatus", "PENDING" },
+        { "transactionId", null },
+        { "createdAt", DateTime.UtcNow }
+    };
 
             await feeRef.SetAsync(feeData);
+
             return Ok(new { feeId, message = "School fee created successfully." });
         }
 
@@ -217,23 +242,35 @@ namespace TestPaymentGateway.Controllers
         [HttpGet("school-fee-payment-page")]
         public IActionResult SchoolFeePaymentPage(string childId, string feeId, string email, string paymentType = null)
         {
+            // Reference to the specific fee document
             var feeRef = _firestore.Collection("Child")
                                     .Document(childId)
                                     .Collection("Fees")
                                     .Document(feeId);
+
             var feeSnapshot = feeRef.GetSnapshotAsync().Result;
             if (!feeSnapshot.Exists)
                 return NotFound("Fee not found.");
 
+            // Convert Firestore document to dictionary
             var fee = feeSnapshot.ToDictionary();
             string description = fee["description"].ToString()?.Trim();
             decimal baseAmount = Convert.ToDecimal(fee["amount"]);
-            string type = fee["type"].ToString()?.Trim().ToUpper() ?? "ONE_TIME";
 
-            // Adjust amount if user chose monthly
-            decimal amountToPay = baseAmount;
-            if (!string.IsNullOrEmpty(paymentType) && paymentType.ToUpper() == "MONTHLY")
-                amountToPay = Math.Round(baseAmount / 10, 2);
+            // Use only 'paymentType' from Firestore; fallback to ONE_TIME
+            string existingPaymentType = fee.ContainsKey("paymentType")
+                ? fee["paymentType"].ToString()?.Trim().ToUpper()
+                : "ONE_TIME";
+
+            // Determine the final payment type to use
+            string finalPaymentType = !string.IsNullOrEmpty(paymentType)
+                ? paymentType.ToUpper()
+                : existingPaymentType;
+
+            // Adjust amount if monthly
+            decimal amountToPay = finalPaymentType == "MONTHLY"
+                ? Math.Round(baseAmount / 10, 2)
+                : baseAmount;
 
             // Fetch child name
             var childRef = feeSnapshot.Reference.Parent.Parent;
@@ -242,7 +279,7 @@ namespace TestPaymentGateway.Controllers
             string lastName = childSnapshot.Exists ? childSnapshot.GetValue<string>("lastName")?.Trim() ?? "" : "";
             string childName = $"{firstName} {lastName}".Trim();
 
-            // Create transaction record
+            // Create a transaction record
             var transaction = new AppTransaction
             {
                 OrderId = feeId,
@@ -254,7 +291,7 @@ namespace TestPaymentGateway.Controllers
             };
             _transactionService.AddTransaction(transaction);
 
-            // Generate PayFast HTML form, now passing paymentType as customStr3
+            // Generate PayFast HTML form using only finalPaymentType
             string htmlForm = _payFastService.GeneratePaymentData(
                 amount: amountToPay,
                 itemName: childName,
@@ -262,11 +299,12 @@ namespace TestPaymentGateway.Controllers
                 emailAddress: email,
                 customStr1: childId,
                 customStr2: feeId,
-                customStr3: paymentType?.ToUpper() ?? type // "MONTHLY" or "ONE_TIME"
+                customStr3: finalPaymentType // Only use paymentType, no 'type'
             );
 
             return Content(htmlForm, "text/html");
         }
+
 
 
         [HttpGet("initiate-school-fee-payment")]
@@ -279,7 +317,7 @@ namespace TestPaymentGateway.Controllers
         public class SchoolFeeRequest
         {
             public string ChildId { get; set; }
-            public string Type { get; set; } // "ONE_TIME" or "MONTHLY"
+            //public string Type { get; set; } // "ONE_TIME" or "MONTHLY"
             public string Description { get; set; }
             public decimal Amount { get; set; }
             public DateTime DueDate { get; set; }
