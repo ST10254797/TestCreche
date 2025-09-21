@@ -54,8 +54,27 @@ builder.Services.AddSingleton(provider =>
 
 var app = builder.Build();
 
-// -------------------- One-time Firestore Cleanup --------------------
-await RemoveTypeFieldFromFees(app.Services.GetRequiredService<FirestoreDb>());
+// -------------------- One-time Firestore Cleanup in Background --------------------
+try
+{
+    var firestoreDb = app.Services.GetRequiredService<FirestoreDb>();
+    // Run cleanup in a background task
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await RemoveTypeFieldFromFees(firestoreDb);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Firestore cleanup failed: " + ex.Message);
+        }
+    });
+}
+catch (Exception ex)
+{
+    Console.WriteLine("Failed to start Firestore cleanup task: " + ex.Message);
+}
 
 // -------------------- Middleware --------------------
 
@@ -91,7 +110,6 @@ var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.Run();
-
 
 // -------------------- Firestore Cleanup Method --------------------
 async Task RemoveTypeFieldFromFees(FirestoreDb db)
