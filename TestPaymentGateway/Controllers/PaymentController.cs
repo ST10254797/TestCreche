@@ -202,7 +202,7 @@ namespace TestPaymentGateway.Controllers
 
         // -------------------- School Fees --------------------
         [HttpPost("create-school-fee")]
-        public async Task<IActionResult> CreateSchoolFee([FromBody] SchoolFeeRequest request)
+        public async Task<IActionResult> CreateSchoolFee([FromBody] SchoolFeeRequest request, [FromQuery] string paymentType = "ONE_TIME")
         {
             if (string.IsNullOrEmpty(request.ChildId))
                 return BadRequest("ChildId is required.");
@@ -213,18 +213,18 @@ namespace TestPaymentGateway.Controllers
                                     .Collection("Fees")
                                     .Document(feeId);
 
+            // Normalize paymentType
+            string finalPaymentType = paymentType?.ToUpper() ?? "ONE_TIME";
+
             decimal amount = request.Amount;
 
-            string paymentType = request.Type?.ToUpper() ?? "ONE_TIME";
-
             // If monthly, divide into 10 installments
-            if (paymentType == "MONTHLY")
+            if (finalPaymentType == "MONTHLY")
                 amount = Math.Round(amount / 10, 2);
 
-            // Use a dictionary to control exactly what fields are stored
             var feeData = new Dictionary<string, object>
     {
-        { "paymentType", paymentType },  // Only store paymentType
+        { "paymentType", finalPaymentType },
         { "description", request.Description },
         { "amount", amount },
         { "dueDate", request.DueDate },
@@ -232,10 +232,6 @@ namespace TestPaymentGateway.Controllers
         { "transactionId", null },
         { "createdAt", DateTime.UtcNow }
     };
-
-            // Just in case request has 'type', remove it
-            if (feeData.ContainsKey("type"))
-                feeData.Remove("type");
 
             await feeRef.SetAsync(feeData);
 
@@ -321,7 +317,7 @@ namespace TestPaymentGateway.Controllers
         public class SchoolFeeRequest
         {
             public string ChildId { get; set; }
-            public string Type { get; set; } // "ONE_TIME" or "MONTHLY"
+            //public string Type { get; set; } // "ONE_TIME" or "MONTHLY"
             public string Description { get; set; }
             public decimal Amount { get; set; }
             public DateTime DueDate { get; set; }
