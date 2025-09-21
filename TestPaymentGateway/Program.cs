@@ -77,6 +77,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseMiddleware<FirebaseRoleMiddleware>();
 app.UseAuthorization();
 
 // Map MVC routes

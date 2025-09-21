@@ -204,6 +204,11 @@ namespace TestPaymentGateway.Controllers
         [HttpPost("create-school-fee")]
         public async Task<IActionResult> CreateSchoolFee([FromBody] SchoolFeeRequest request, [FromQuery] string paymentType = "ONE_TIME")
         {
+            // ✅ Check role from middleware
+            string role = HttpContext.Items["Role"]?.ToString();
+            if (role != "admin")
+                return Forbid("Only admins can create school fees.");
+
             if (string.IsNullOrEmpty(request.ChildId))
                 return BadRequest("ChildId is required.");
 
