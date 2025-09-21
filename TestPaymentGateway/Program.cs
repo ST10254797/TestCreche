@@ -4,6 +4,8 @@ using Google.Cloud.Firestore.V1;
 using Grpc.Auth;
 using TestPaymentGateway;
 using TestPaymentGateway.Services;
+using System;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,11 +52,10 @@ builder.Services.AddSingleton(provider =>
     return FirestoreDb.Create("testcreche", firestoreClient); // replace with your Firebase Project ID
 });
 
-// -------------------- Swagger / OpenAPI --------------------
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 var app = builder.Build();
+
+// -------------------- One-time Firestore Cleanup --------------------
+await RemoveTypeFieldFromFees(app.Services.GetRequiredService<FirestoreDb>());
 
 // -------------------- Middleware --------------------
 
@@ -72,9 +73,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Commented HTTPS redirection for Render
-// app.UseHttpsRedirection();
-
+// app.UseHttpsRedirection(); // Commented for Render
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
@@ -85,11 +84,35 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
 
-app.MapControllers(); // This enables routes defined in ApiController classes
-
+app.MapControllers();
 
 // -------------------- Bind to Render port --------------------
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.Run();
+
+
+// -------------------- Firestore Cleanup Method --------------------
+async Task RemoveTypeFieldFromFees(FirestoreDb db)
+{
+    Console.WriteLine("Starting Firestore cleanup: removing 'type' field...");
+
+    var childrenSnapshot = await db.Collection("Child").GetSnapshotAsync();
+
+    foreach (var childDoc in childrenSnapshot.Documents)
+    {
+        var feesSnapshot = await childDoc.Reference.Collection("Fees").GetSnapshotAsync();
+
+        foreach (var feeDoc in feesSnapshot.Documents)
+        {
+            if (feeDoc.ContainsField("type"))
+            {
+                Console.WriteLine($"Removing 'type' from {childDoc.Id}/{feeDoc.Id}");
+                await feeDoc.Reference.UpdateAsync("type", FieldValue.Delete);
+            }
+        }
+    }
+
+    Console.WriteLine("Firestore cleanup completed!");
+}
