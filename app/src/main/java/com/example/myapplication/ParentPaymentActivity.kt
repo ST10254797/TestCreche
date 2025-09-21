@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import java.net.URLEncoder
 
 class ParentPaymentActivity : AppCompatActivity() {
@@ -22,6 +23,7 @@ class ParentPaymentActivity : AppCompatActivity() {
     private lateinit var childId: String
     private lateinit var feeId: String
     private lateinit var parentEmail: String
+    private var feeListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +56,8 @@ class ParentPaymentActivity : AppCompatActivity() {
                     when {
                         it.startsWith("myapp://payment-success") -> {
                             Log.d("ParentPaymentActivity", "Detected success redirect")
-                            navigateBack(true)
+                            // ✅ Don’t navigate back immediately — wait for Firestore listener
+                            Toast.makeText(this@ParentPaymentActivity, "Waiting for confirmation...", Toast.LENGTH_SHORT).show()
                             return true
                         }
                         it.startsWith("myapp://payment-cancel") -> {
@@ -143,7 +146,6 @@ class ParentPaymentActivity : AppCompatActivity() {
         }
     }
 
-
     private fun initiateFeePayment() {
         val rgPaymentType = findViewById<RadioGroup>(R.id.rgPaymentType)
         val selectedTypeId = rgPaymentType.checkedRadioButtonId
@@ -167,20 +169,56 @@ class ParentPaymentActivity : AppCompatActivity() {
 
         Log.d("ParentPaymentActivity", "Loading payment URL: $url")
         webView.loadUrl(url)
+
+        // Start listening for Firestore payment status update
+        listenForPaymentStatus()
+    }
+
+    private fun listenForPaymentStatus() {
+        val db = FirebaseFirestore.getInstance()
+        val feeRef = db.collection("Child")
+            .document(childId)
+            .collection("Fees")
+            .document(feeId)
+
+        feeListener?.remove() // remove old listener if exists
+        feeListener = feeRef.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.e("ParentPaymentActivity", "Error listening for payment updates", e)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && snapshot.exists()) {
+                val paymentStatus = snapshot.getString("paymentStatus")
+                val amountPaid = snapshot.getDouble("amountPaid")
+                val paymentType = snapshot.getString("paymentType")
+
+                Log.d("ParentPaymentActivity", "Payment status from Firestore: $paymentStatus")
+
+                if (paymentStatus == "PAID") {
+                    Toast.makeText(
+                        this,
+                        "Payment successful! Amount: R$amountPaid, Type: $paymentType",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    navigateBack(true)
+                }
+            }
+        }
     }
 
     private fun navigateBack(paymentSuccess: Boolean) {
         Log.d("ParentPaymentActivity", "Navigating back with paymentSuccess=$paymentSuccess")
 
-        Toast.makeText(
-            this,
-            if (paymentSuccess) "Payment successful!" else "Payment cancelled",
-            Toast.LENGTH_SHORT
-        ).show()
-
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(intent)
         finish()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        feeListener?.remove() // cleanup Firestore listener
     }
 }
