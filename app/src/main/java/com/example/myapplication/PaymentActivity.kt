@@ -1,205 +1,117 @@
 package com.example.myapplication
 
-import android.content.DialogInterface
-import android.content.Intent
 import android.os.Bundle
-import android.text.InputType
-import android.widget.EditText
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import android.view.View
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.net.URLEncoder
 
 class PaymentActivity : AppCompatActivity() {
 
-    private lateinit var webView: WebView
-    private val client = OkHttpClient()
-    private var hasNavigated = false
+    private lateinit var spinnerChild: Spinner
+    private lateinit var editAmount: EditText
+    private lateinit var editDescription: EditText
+    private lateinit var btnCreateFee: Button
 
-    private var childId = ""
-    private var description = ""
-    private var email = ""
-    private var paymentType = "FULL" // Admin default type
+    private var childId = "" // Firestore ID of selected child
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        webView = WebView(this)
-        setContentView(webView)
-        WebView.setWebContentsDebuggingEnabled(true)
-        webView.settings.javaScriptEnabled = true
+        setContentView(R.layout.activity_payment)
 
-        // Get data from intent
-        childId = intent.getStringExtra("childId") ?: ""
-        description = intent.getStringExtra("description") ?: "School Fee"
-        email = intent.getStringExtra("email") ?: ""
+        // Bind UI elements
+        spinnerChild = findViewById(R.id.spinnerChild)
+        editAmount = findViewById(R.id.editAmount)
+        editDescription = findViewById(R.id.editDescription)
+        btnCreateFee = findViewById(R.id.btnCreateFee)
 
-        if (childId.isEmpty() || email.isEmpty()) {
-            Toast.makeText(this, "Missing required data for payment", Toast.LENGTH_LONG).show()
-            finish()
-            return
-        }
+        // Load children into spinner
+        loadChildren()
 
-        showFeeInputDialog()
+        // Create fee when button clicked
+        btnCreateFee.setOnClickListener {
+            val amount = editAmount.text.toString().toDoubleOrNull()
+            val description = editDescription.text.toString().ifEmpty { "School Fee" }
 
-        // WebView URL interception for success/cancel
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                url?.let {
-                    if (it.startsWith("myapp://payment-success")) {
-                        navigateToDashboard(true)
-                        return true
-                    } else if (it.startsWith("myapp://payment-cancel")) {
-                        navigateToDashboard(false)
-                        return true
-                    }
-                }
-                return false
+            // Validate input
+            if (childId.isEmpty() || amount == null || amount <= 0) {
+                Toast.makeText(this, "Please fill in all fields correctly", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+
+            // Use Firestore ID directly
+            createNewFeeForChild(childId, amount, description)
         }
     }
 
-    private fun showFeeInputDialog() {
-        val inputAmount = EditText(this)
-        inputAmount.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-        inputAmount.hint = "Enter amount"
+    private fun loadChildren() {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("Child")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
+                    Toast.makeText(this, "No children found", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
 
-        val inputDescription = EditText(this)
-        inputDescription.inputType = InputType.TYPE_CLASS_TEXT
-        inputDescription.hint = "Description (optional)"
+                // Map each child to Pair(Firestore ID, Full Name)
+                val childList = snapshot.documents.map { doc ->
+                    val firstName = doc.getString("firstName") ?: ""
+                    val lastName = doc.getString("lastName") ?: ""
+                    val fullName = "$firstName $lastName".trim().ifEmpty { "Unnamed Child" }
+                    Pair(doc.id, fullName)
+                }
 
-        val layout = android.widget.LinearLayout(this)
-        layout.orientation = android.widget.LinearLayout.VERTICAL
-        layout.addView(inputAmount)
-        layout.addView(inputDescription)
-        layout.setPadding(50, 40, 50, 10)
+                // Populate spinner with full names
+                val adapter = ArrayAdapter(
+                    this,
+                    android.R.layout.simple_spinner_item,
+                    childList.map { it.second } // Only show names
+                )
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                spinnerChild.adapter = adapter
 
-        AlertDialog.Builder(this)
-            .setTitle("Create New Fee")
-            .setView(layout)
-            .setCancelable(false)
-            .setPositiveButton("Proceed") { _: DialogInterface, _: Int ->
-                val amount = inputAmount.text.toString().toDoubleOrNull()
-                val desc = inputDescription.text.toString().ifEmpty { description }
+                // Track selected child by Firestore ID
+                spinnerChild.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(
+                        parent: AdapterView<*>,
+                        view: android.view.View?,
+                        position: Int,
+                        id: Long
+                    ) {
+                        childId = childList[position].first // Firestore document ID
+                    }
 
-                if (amount == null || amount <= 0) {
-                    Toast.makeText(this, "Invalid amount", Toast.LENGTH_SHORT).show()
-                    showFeeInputDialog()
-                } else {
-                    createNewFeeForChild(childId, amount, desc)
+                    override fun onNothingSelected(parent: AdapterView<*>) {
+                        childId = ""
+                    }
                 }
             }
-            .setNegativeButton("Cancel") { _: DialogInterface, _: Int ->
-                finish()
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to load children: ${e.message}", Toast.LENGTH_SHORT).show()
             }
-            .show()
     }
 
     private fun createNewFeeForChild(childId: String, amount: Double, description: String) {
-        try {
-            val db = FirebaseFirestore.getInstance()
+        val db = FirebaseFirestore.getInstance()
+        val newFee = hashMapOf(
+            "amount" to amount,
+            "description" to description,
+            "createdAt" to Timestamp.now(),
+            "amountPaid" to 0.0,
+            "paymentStatus" to "PENDING" // Parent will handle payment type
+        )
 
-            val newFee = hashMapOf(
-                "amount" to amount,
-                "description" to description,
-                "createdAt" to com.google.firebase.Timestamp.now(),
-                "amountPaid" to 0.0,
-                "paymentStatus" to "PENDING",
-                "paymentType" to paymentType
-            )
-
-            db.collection("Child")
-                .document(childId)
-                .collection("Fees")
-                .add(newFee)
-                .addOnSuccessListener { docRef ->
-                    Toast.makeText(this@PaymentActivity, "New fee created successfully", Toast.LENGTH_SHORT).show()
-                    // Initiate payment using the newly created fee ID
-                    initiatePayment(amount, docRef.id)
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(this@PaymentActivity, "Failed to create fee: ${e.message}", Toast.LENGTH_LONG).show()
-                    e.printStackTrace()
-                }
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            Toast.makeText(this@PaymentActivity, "Error creating fee: ${ex.message}", Toast.LENGTH_LONG).show()
-        }
-    }
-
-
-    private fun initiatePayment(amount: Double, feeId: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val createPaymentUrl =
-                    "https://testcrecheapp.onrender.com/api/payment/create-payment-request" +
-                            "?childId=${URLEncoder.encode(childId, "UTF-8")}" +
-                            "&feeId=${URLEncoder.encode(feeId, "UTF-8")}" +
-                            "&email=${URLEncoder.encode(email, "UTF-8")}" +
-                            "&amount=$amount" +
-                            "&paymentType=${URLEncoder.encode(paymentType, "UTF-8")}"
-
-                val request = Request.Builder()
-                    .url(createPaymentUrl)
-                    .post(okhttp3.FormBody.Builder().build())
-                    .build()
-
-                val response = client.newCall(request).execute()
-
-                if (response.isSuccessful) {
-                    val payFastUrl =
-                        "https://testcrecheapp.onrender.com/api/payment/school-fee-payment-page" +
-                                "?childId=${URLEncoder.encode(childId, "UTF-8")}" +
-                                "&feeId=${URLEncoder.encode(feeId, "UTF-8")}" +
-                                "&amount=$amount" +
-                                "&email=${URLEncoder.encode(email, "UTF-8")}"
-
-                    val payFastRequest = Request.Builder().url(payFastUrl).build()
-                    val payFastResponse = client.newCall(payFastRequest).execute()
-                    val body = payFastResponse.body?.string() ?: ""
-
-                    runOnUiThread {
-                        webView.loadDataWithBaseURL(null, body, "text/html", "UTF-8", null)
-                    }
-                } else {
-                    runOnUiThread {
-                        Toast.makeText(
-                            this@PaymentActivity,
-                            "Failed to create payment request. Server returned ${response.code}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        finish()
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                runOnUiThread {
-                    Toast.makeText(
-                        this@PaymentActivity,
-                        "Payment initiation failed",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    finish()
-                }
+        db.collection("Child")
+            .document(childId)
+            .collection("Fees")
+            .add(newFee)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Fee created successfully", Toast.LENGTH_SHORT).show()
+                finish() // close activity
             }
-        }
-    }
-
-    private fun navigateToDashboard(paymentSuccess: Boolean) {
-        if (hasNavigated) return
-        hasNavigated = true
-        webView.visibility = View.GONE
-        val intent = Intent(this, AdminDashboardActivity::class.java)
-        intent.putExtra("paymentStatus", if (paymentSuccess) "SUCCESS" else "CANCELLED")
-        startActivity(intent)
-        finish()
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
     }
 }

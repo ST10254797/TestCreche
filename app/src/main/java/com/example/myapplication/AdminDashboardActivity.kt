@@ -120,87 +120,11 @@ class AdminDashboardActivity : AppCompatActivity() {
         }
 
         //Payment button
-        // Payment button (Admin can create a new fee for a child)
+// Admin button opens PaymentActivity instead of showing a popup
         findViewById<LinearLayout>(R.id.admin_btn_payment)?.setOnClickListener {
-            val firestore = FirebaseFirestore.getInstance()
-
-            firestore.collection("Child")
-                .limit(1) // just get one child for testing
-                .get()
-                .addOnSuccessListener { childrenSnapshot ->
-                    val childDoc = childrenSnapshot.documents.firstOrNull()
-                    if (childDoc == null) {
-                        Log.e("ADMIN_DASH", "No children found.")
-                        return@addOnSuccessListener
-                    }
-
-                    val childId = childDoc.id
-                    val email = childDoc.getString("parentEmail") ?: ""
-                    if (email.isEmpty()) {
-                        Log.e("ADMIN_DASH", "Child email missing.")
-                        return@addOnSuccessListener
-                    }
-
-                    // Get the first fee for this child (just for description reference)
-                    childDoc.reference.collection("Fees")
-                        .limit(1)
-                        .get()
-                        .addOnSuccessListener { feeSnapshot ->
-                            val feeDoc = feeSnapshot.documents.firstOrNull()
-                            val description = feeDoc?.getString("description") ?: "School Fee"
-
-                            // Show dialog to let admin enter the amount for new fee
-                            val input = EditText(this)
-                            input.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-                            input.hint = "Enter amount"
-
-                            AlertDialog.Builder(this)
-                                .setTitle("Create New Fee")
-                                .setMessage("Enter amount for $description")
-                                .setView(input)
-                                .setCancelable(true)
-                                .setPositiveButton("Save") { _, _ ->
-                                    val newAmount = input.text.toString().toDoubleOrNull()
-                                    if (newAmount != null && newAmount > 0) {
-                                        // Create a new fee instead of updating
-                                        val newFee = hashMapOf(
-                                            "amount" to newAmount,
-                                            "description" to description,
-                                            "createdAt" to com.google.firebase.Timestamp.now(),
-                                            "amountPaid" to 0.0,
-                                            "paymentStatus" to "PENDING",
-                                            "paymentType" to "FULL" // admin default
-                                        )
-
-                                        childDoc.reference.collection("Fees")
-                                            .add(newFee)
-                                            .addOnSuccessListener { docRef ->
-                                                Log.d("ADMIN_DASH", "New fee created successfully with ID ${docRef.id}")
-                                                Toast.makeText(this, "New fee created successfully", Toast.LENGTH_SHORT).show()
-                                                // Optionally: initiate payment flow here using docRef.id
-                                            }
-                                            .addOnFailureListener { e ->
-                                                Log.e("ADMIN_DASH", "Failed to create new fee: ${e.message}")
-                                                Toast.makeText(this, "Failed to create new fee", Toast.LENGTH_LONG).show()
-                                            }
-
-                                    } else {
-                                        Log.e("ADMIN_DASH", "Invalid amount entered")
-                                        Toast.makeText(this, "Invalid amount", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                                .setNegativeButton("Cancel", null)
-                                .show()
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("ADMIN_DASH", "Failed to fetch fees: ${e.message}")
-                        }
-                }
-                .addOnFailureListener { e ->
-                    Log.e("ADMIN_DASH", "Failed to fetch children: ${e.message}")
-                }
+            val intent = Intent(this, PaymentActivity::class.java)
+            startActivity(intent)
         }
-
 
     }
 }
